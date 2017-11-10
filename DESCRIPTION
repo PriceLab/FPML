@@ -1,0 +1,10 @@
+Package: FPML
+Type: Package
+Title: Footprint Machine Learning
+Version: 1.0
+Date: 2017-11-10
+Author: Matthew Richards
+Maintainer: Matthew Richards <mrichard@systemsbiology.org>
+Description: Use footprint data and ChipSEQ data from lymphoblast tissue to
+build models for predicting binding sites given footprints and other metadata
+License: GPL-3
