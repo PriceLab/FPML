@@ -1,3 +1,17 @@
+#----------------------------------------------------------------------------------------------------
+#' Compute Matthews Correlation Coefficient
+#'
+#' Given the true classes and predicted classes, compute Matthews Correlation Coefficient
+#'
+#' @param true_classes A binary vector of classes that indicate the true classification of each
+#' point
+#' @param predicted_classes A binary vector of classes that indicate the predicted classification
+#' of each point
+#'
+#' @return The Matthews Correlation Coefficient for the given prediction/truth sets
+#'
+#' @export
+
 mattcc <- function(true_classes, predicted_classes) {
         
     pos <- true_classes == 1
@@ -25,7 +39,8 @@ mattcc <- function(true_classes, predicted_classes) {
     }
     
     return(M)
-}
+} #mattcc
+#----------------------------------------------------------------------------------------------------
 
 mattcc.curve <- function(true.values, pred.probs, num.points=101) {
     threshholds <- seq(from=0, to=1, length.out=num.points)
@@ -37,6 +52,7 @@ mattcc.curve <- function(true.values, pred.probs, num.points=101) {
     return(mattcc.data)
 }
 
+#----------------------------------------------------------------------------------------------------
 # make dataframe for preditions vs ChIPseq
 make.pred.df.from.model <- function(gbdt.model,X.testdata,y.testdata) {
     
@@ -48,6 +64,7 @@ make.pred.df.from.model <- function(gbdt.model,X.testdata,y.testdata) {
     
 }
 
+#----------------------------------------------------------------------------------------------------
 make.pred.df.from.glm <- function(glm.model,df.testdata) {
     
     preds.test <- predict.glm(object=glm.model, newdata=df.testdata, type="response")
@@ -59,6 +76,7 @@ make.pred.df.from.glm <- function(glm.model,df.testdata) {
     
 }
 
+#----------------------------------------------------------------------------------------------------
 # compute roc curve and prec/recall-like stats
 make.stats.df.from.preds <- function(pred.df, num.roc.points=101) {
     

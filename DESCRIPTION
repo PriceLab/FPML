@@ -5,6 +5,32 @@ Version: 1.0
 Date: 2017-11-10
 Author: Matthew Richards
 Maintainer: Matthew Richards <mrichard@systemsbiology.org>
+Imports:
+    RPostgreSQL,
+    GenomicRanges,
+    BiocParallel,
+    dbplyr,
+    fst,
+    tidyr,
+    stringr,
+    ggplot2,
+    doMC,
+    numbers,
+    Matrix,
+    RColorBrewer,
+    xgboost,
+    glmnet,
+    pROC,
+    ROCR,
+    caret,
+    caTools,
+    MotifDb,
+    Biostrings,
+    BSgenome.Hsapiens.UCSC.hg38
+
+Depends:
+    R(>=3.4.0)
+    dplyr
 Description: Use footprint data and ChipSEQ data from lymphoblast tissue to
 build models for predicting binding sites given footprints and other metadata
 License: GPL-3
