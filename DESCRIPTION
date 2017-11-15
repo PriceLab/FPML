@@ -1,8 +1,8 @@
 Package: FPML
 Type: Package
 Title: Footprint Machine Learning
-Version: 1.0
-Date: 2017-11-10
+Version: 0.1.1
+Date: 2017-11-15
 Author: Matthew Richards
 Maintainer: Matthew Richards <mrichard@systemsbiology.org>
 Imports:
@@ -27,10 +27,9 @@ Imports:
     MotifDb,
     Biostrings,
     BSgenome.Hsapiens.UCSC.hg38
-
 Depends:
-    R(>=3.4.0)
-    dplyr
-Description: Use footprint data and ChipSEQ data from lymphoblast tissue to
-build models for predicting binding sites given footprints and other metadata
+    R (>= 3.4.0),
+    dplyr (>= 0.7.4)
+Description: Use footprint data and ChipSEQ data from lymphoblast tissue to build models for predicting binding sites given footprints and other metadata
 License: GPL-3
+RoxygenNote: 6.0.1

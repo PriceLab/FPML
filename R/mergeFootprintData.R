@@ -26,12 +26,12 @@ mergeLymphoblastFootprints <- function(fimo.df, seedNum, host = "localhost", ver
     db_lymph_hint <- DBI::dbConnect(drv = RPostgreSQL::PostgreSQL(),
                                     user="trena",
                                     password="trena",
-                                    dbname = db.hint
+                                    dbname = db.hint,
                                     host = host)
     db_lymph_well <- DBI::dbConnect(drv = RPostgreSQL::PostgreSQL(),
                                     user="trena",
                                     password="trena",
-                                    dbname = db.well
+                                    dbname = db.well,
                                     host = host)
     hint_regions <- dplyr::tbl(db_lymph_hint, "regions")
     hint_hits    <- dplyr::tbl(db_lymph_hint, "hits")

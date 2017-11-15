@@ -53,8 +53,8 @@ annotateFootprintData <- function(fp.df){
 createMotifClassMap <- function(fp.df){
 
     # Load data on motif mapping
-    load(system.file(package="FPML", "extdata/Tfmotifmap.Rdata")
-    load(system.file(package="FPML", "extdata/motif_class_pairs.Rdata")
+    load(system.file(package="FPML", "extdata/Tfmotifmap.Rdata"))
+    load(system.file(package="FPML", "extdata/motif_class_pairs.Rdata"))
 
     # Make Jaspar translation table
     jaspar.motifs <- MotifDb::subset(MotifDb::MotifDb, dataSource == "jaspar2016")

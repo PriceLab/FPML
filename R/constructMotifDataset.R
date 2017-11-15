@@ -1,13 +1,11 @@
-library(RPostgreSQL)
-library(dplyr)
-library(GenomicRanges)
-library(doParallel)
-library(dbplyr)
-library(BiocParallel)
-library(fst)
-
-source("/scratch/github/BDDS/footprints/testdb/src/dbFunctions.R")
-
+#----------------------------------------------------------------------------------------------------
+#' Construct the Lymphoblast Datast
+#'
+#' Using the included ChIPSeq data, construct the lymphoblast dataset
+#'
+#' @return The complete motif/ChIPSeq dataset for lymphoblast
+#'
+#' @export
 
 constructLymphoblastDataset <- function(){
     # Load the chipseq data locally
@@ -43,6 +41,17 @@ constructLymphoblastDataset <- function(){
     
 } # createLymphoblastDataset
 #----------------------------------------------------------------------------------------------------
+#' Sample the FIMO/ChIPSeq Dataset
+#'
+#' Take a random sample of some size from the FIMO/ChIPSeq dataset
+#'
+#' @param all.TF.df The FIMO/ChIPSeq dataset, a data frame
+#' @param sampleSize An integer indicating the sample size to be taken
+#'
+#' @return A subset of the supplied dataframe, with row number equal to sampleSize
+#'
+#' @export
+
 sampleTfDataset <- function(all.TF.df, sampleSize){
     
     # Create a sample of the correct size
@@ -53,9 +62,22 @@ sampleTfDataset <- function(all.TF.df, sampleSize){
     
 } #sampleTfDataset
 #----------------------------------------------------------------------------------------------------
-# Define the function to pull motifs for a TF
+#' Pull all FIMO Motifs for a Given TF
+#'
+#' Given a particular TF, pull all FIMO data for the motifs that map to that TF
+#'
+#' @param TF A transcription factor of interest
+#' @param verbose A Boolean flag indicating whether the function should print output (default = FALSE)
+#'
+#' @return The data frame containing all FIMO motifs that correspond to the supplied TF
+#'
+#' @export
+
 createTfDf <- function(TF, verbose = FALSE){
-    
+
+    # Load the TF-Motif mapping data
+    load(system.file(package = "FPML", "extdata/Tfmotifmap.Rdata"))
+
     # Make the database connection
     db.fimo.dplyr <- DBI::dbConnect(drv = RPostgreSQL::PostgreSQL(),
                                     user = "trena",
@@ -122,3 +144,4 @@ createTfDf <- function(TF, verbose = FALSE){
     return(all.fimo.examples.TF.df)
 
 } # createTfDf
+#----------------------------------------------------------------------------------------------------
