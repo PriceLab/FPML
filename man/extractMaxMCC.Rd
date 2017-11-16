@@ -4,7 +4,7 @@
 \alias{extractMaxMCC}
 \title{Extract the Maximum MCC Values}
 \usage{
-extractMaxMCC(statsDF)
+extractMaxMCC(boostedStats, linearStats)
 }
 \arguments{
 \item{statsDF}{A data frame of statistics created by one of the model building functions,

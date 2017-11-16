@@ -4,7 +4,15 @@
 \alias{constructLymphoblastDataset}
 \title{Construct the Lymphoblast Datast}
 \usage{
-constructLymphoblastDataset()
+constructLymphoblastDataset(distinctFlag = TRUE, sampleSize = NULL)
+}
+\arguments{
+\item{distinctFlag}{A Boolean flag indicating whether or not to take just the unique rows
+of the data frame (default = TRUE)}
+
+\item{sampleSize}{An integer value indicating how many rows of the data frame to take. If this
+argument is not specified or make to be NULL, the entire data frame will be returned
+(default = NULL)}
 }
 \value{
 The complete motif/ChIPSeq dataset for lymphoblast

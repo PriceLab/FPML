@@ -4,18 +4,18 @@
 \alias{plotStatCurves}
 \title{Make plots for MCC, ROC, and Prec-Rec}
 \usage{
-plotStatCurves(boostedStats, linearStatList, dataType, filePaths)
+plotStatCurves(boostedStats, linearStats, dataType, filePaths)
 }
 \arguments{
 \item{boostedStats}{The dataframe containing statistics from the boosted model. Generally, these
 are generated using the \code{buildBoostedModel} function}
 
+\item{dataType}{A string that must be one of c("seed16","seed20","both","motifsOnly"). This
+string denotes what labels will be given for the plots within the figures themselves}
+
 \item{linearStatList}{The list containing 2 dataframes, one with the statistics from the full
 linear model, the other with statistics from the individual linear models. Generally, these are
 generated using the \code{buildLinearModels} function}
-
-\item{dataType}{A string that must be one of c("seed16","seed20","both","motifsOnly"). This
-string denotes what labels will be given for the plots within the figures themselves}
 
 \item{filepaths}{A character string of length = 3, giving the 3 filepaths to which the function
 will save the curves. They should be in the following format: c(MCC_path, ROC_path, PrecRec_path)}

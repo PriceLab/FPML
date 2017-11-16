@@ -1,4 +1,16 @@
 #----------------------------------------------------------------------------------------------------
+#' Build a Linear Models
+#'
+#' Build a linear model with all features and linear models with each individual feature for the
+#' given list of data and return the stats data framed for inspection and plotting
+#'
+#' @param dataList The list of prepared data, generally obtained by running the \code{prepModelData}
+#' function. It must contain at least these 4  matrices: X_train, y_train, X_test, y_test
+#'
+#' @return A stats dataframes, containing statistics for the both thefull linear model and for
+#' the individual linear models
+#'
+#' @export
 
 buildLinearModels <- function(dataList){
 
@@ -25,9 +37,9 @@ buildLinearModels <- function(dataList){
     glm.df.train <- as.data.frame(cbind(y_train_lin, X_train_lin)) %>%
         dplyr::rename("ChIPseq.bound" = "cs_hit")
     glm.df.test <-  as.data.frame(cbind(y_test_lin, X_test_lin)) %>%
-        dpylr::rename("ChIPseq.bound" = "cs_hit")
+        dplyr::rename("ChIPseq.bound" = "cs_hit")
 
-    glm.all <- glmnet::glm(as.formula(glm.formula), data=glm.df.train, family=binomial)
+    glm.all <- stats::glm(as.formula(glm.formula), data=glm.df.train, family=binomial)
     glm.all$Model.Name <- "linear model (all regressors)"
 
     # Gather full linear stats
@@ -50,7 +62,7 @@ buildLinearModels <- function(dataList){
         glm.df.test <-  as.data.frame(cbind(y_test_lin, X_test_lin)) %>%
             dplyr::rename("ChIPseq.bound" = "cs_hit")
 
-        glm.single <- glmnet::glm(as.formula(glm.formula),
+        glm.single <- stats::glm(as.formula(glm.formula),
                                   data=glm.df.train, family=binomial)
         glm.single$Model.Name <- paste("glm ", this.regressor, sep='')
 
@@ -61,8 +73,9 @@ buildLinearModels <- function(dataList){
         
     }
 
-    return(list(FullLinearStats = glm.stat.df,
-                SingleLinearStats = stats.regressors.df))    
+    linear.stat.df <- dplyr::bind_rows(glm.stat.df, stats.regressors.df)
+    
+    return(linear.stat.df)
     
 } # buildLinearModels
 #----------------------------------------------------------------------------------------------------
@@ -99,7 +112,7 @@ plotImportanceMatrix <- function(gbModel, X_train, filePath){
     df.sum <- dplyr::bind_rows(df.notf,tfclass.row)
 
     png(filePath)
-    ggplot2::ggplot(data=df.sum, aes(x=reorder(Feature, Gain), y=Gain)) +
+    ggplot2::ggplot(data=df.sum, ggplot2::aes(x=reorder(Feature, Gain), y=Gain)) +
         ggplot2::geom_bar(stat="identity") +
         ggplot2::coord_flip() +
         ggplot2::theme_minimal(base_size = 30) +
@@ -175,16 +188,16 @@ buildBoostedModel <- function(dataList){
 #'
 #' @export
 
-filterModelData <- function(annotated.df, seed,
+prepModelData <- function(annotated.df, seed,
                             hintCutoff = 3.6,
                             wellCutoff = -2.3,
-                            motifOnly = FALSE){
+                            motifsOnly = FALSE){
 
     # Catch non-data frames
     stopifnot("data.frame" %in% class(annotated.df))
 
     # Fix columns and filter
-    colnames(all.TF.df.fimo.hint.well.annotated) <- make.names(colnames(all.TF.df.fimo.hint.well.annotated), unique=TRUE)
+    colnames(annotated.df) <- make.names(colnames(annotated.df), unique=TRUE)
 
     if(seed == "both"){
         annotated.df %>%
@@ -202,7 +215,6 @@ filterModelData <- function(annotated.df, seed,
 
     rm(annotated.df)
 
-
     # Denote columns to drop based on the motifsOnly flag
     if(motifsOnly){
 
@@ -214,6 +226,9 @@ filterModelData <- function(annotated.df, seed,
         cols_to_drop <- c('motifname', 'chrom', 'start', 'endpos',
                           'strand', 'pval', 'sequence','loc')
     }
+
+    # Intersect the columns to drop with the actual columns to avoid warnings
+    cols_to_drop <- intersect(names(filtered.df), cols_to_drop)
         
     # Split up the data into training/testing/validation    
     filtered.df %>%
@@ -226,7 +241,7 @@ filterModelData <- function(annotated.df, seed,
         dplyr::select(-dplyr::one_of(cols_to_drop)) ->
         test_df
 
-    df_only_footprint_hits %>%
+    filtered.df %>%
         dplyr::filter(!(chrom %in% c("1","2","3","4","5"))) %>%
         dplyr::select(-dplyr::one_of(cols_to_drop)) ->
         train_df
@@ -322,18 +337,20 @@ joinModelData <- function(full.16, full.20){
 #' generated using the \code{buildLinearModels} function
 #' @param dataType A string that must be one of c("seed16","seed20","both","motifsOnly"). This
 #' string denotes what labels will be given for the plots within the figures themselves
-#' @param filepaths A character string of length = 3, giving the 3 filepaths to which the function
+#' @param filePaths A character string of length = 3, giving the 3 filepaths to which the function
 #' will save the curves. They should be in the following format: c(MCC_path, ROC_path, PrecRec_path)
 #'
 #' @return 3 .PNG files, each containing one of the 3 figures for the given data.
 #'
 #' @export
 
-plotStatCurves <- function(boostedStats, linearStatList, dataType, filePaths){
+plotStatCurves <- function(boostedStats, linearStats, dataType, filePaths){
 
+    # Catch bad datatypes
+    stopifnot(dataType %in% c("seed16", "seed20", "both", "motifsOnly"))
 
     # Bind together the input data
-    all.stats.df <- bind_rows(boostedStats, linearStatList)
+    all.stats.df <- bind_rows(boostedStats, linearStats)
 
     # Based on dataType, change the following:
     # 1) List of models to filter
@@ -378,7 +395,7 @@ plotStatCurves <- function(boostedStats, linearStatList, dataType, filePaths){
         dplyr::filter(Model.Name %in% modelList)
 
     # Make the color palette
-    colScale <- scale_colour_manual(name = "Model.Name",values = myColors)
+    colScale <- ggplot2::scale_colour_manual(name = "Model.Name",values = myColors)
     
     # Change labels and reorder model names based on dataType
     if(dataType == "both"){
@@ -450,17 +467,17 @@ plotStatCurves <- function(boostedStats, linearStatList, dataType, filePaths){
     
     # Plot the Matt CC Curve
     png(filePaths[3])
-    plot.mattcc.curve(all.stats.df) + theme_minimal(base_size = 15) + colScale
+    plot.mattcc.curve(all.stats.df) + ggplot2::theme_minimal(base_size = 15) + colScale
     dev.off()
 
     # Plot the ROC curve
     png(filePaths[2])
-    plot.roc.curve(all.stats.df, TRUE) + theme_minimal(base_size = 15) + colScale
+    plot.roc.curve(all.stats.df, TRUE) + ggplot2::theme_minimal(base_size = 15) + colScale
     dev.off()
     
     # Plot the Prec-Rec curve
     png(filePaths[3])
-    plot.precrecall.curve(all.stats.df) + theme_minimal(base_size = 15) + colScale
+    plot.precrecall.curve(all.stats.df) + ggplot2::theme_minimal(base_size = 15) + colScale
     #dev.off()
 }
 
@@ -479,10 +496,15 @@ plotStatCurves <- function(boostedStats, linearStatList, dataType, filePaths){
 #'
 #' @export
 
-extractMaxMCC <- function(statsDF){
+extractMaxMCC <- function(boostedStats, linearStats){
 
-    # Check to make sure statsDF is a dataframe
-    stopifnot("data.frame" %in% class(statsDF))
+    # Check to make sure both are dataframes
+    stopifnot("data.frame" %in% class(boostedStats))
+    stopifnot("data.frame" %in% class(linearStats))
+
+    # Bind them together
+    statsDF <- bind_rows(boostedStats, linearStats)
+
 
     # Use a dplyr summarization to get the correct table
     statsDF %>% dplyr::group_by(Model.Name) %>%

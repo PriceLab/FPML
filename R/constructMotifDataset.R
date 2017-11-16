@@ -1,27 +1,42 @@
 #----------------------------------------------------------------------------------------------------
 #' Construct the Lymphoblast Datast
 #'
-#' Using the included ChIPSeq data, construct the lymphoblast dataset
+#' Using the included ChIPSeq data, construct the lymphoblast dataset 
 #'
+#' @param distinctFlag A Boolean flag indicating whether or not to take just the unique rows
+#' of the data frame (default = TRUE)
+#' @param sampleSize An integer value indicating how many rows of the data frame to take. If this
+#' argument is not specified or make to be NULL, the entire data frame will be returned
+#' (default = NULL)
 #' @return The complete motif/ChIPSeq dataset for lymphoblast
 #'
 #' @export
 
-constructLymphoblastDataset <- function(){
-    # Load the chipseq data locally
-    load(system.file(package = "FPML", "extdata/Rdata_files/chipSeqData.Rdata"))
+constructLymphoblastDataset <- function(distinctFlag = TRUE, sampleSize = NULL){
     
+    # Read the ChIPseq data from the local database
+    db.chipseq <- DBI::dbConnect(drv=RPostgreSQL::PostgreSQL(),
+                                 user = "trena",
+                                 password = "trena",
+                                 dbname = "chipseq",
+                                 host= "localhost")                           
+
+    # Grab the hits table as is
+    chipseq.hits <- DBI::dbGetQuery(db.chipseq, "select * from hits")
+    chipseq.hits <- tibble::as_tibble(chipseq.hits)
+
+    # Grab the regions table and modify the chrom column
+    chipseq.regions <- DBI::dbGetQuery(db.chipseq, "select * from regions")
+    chipseq.regions <- tibble::as_tibble(chipseq.regions)
+    chr.list <- chipseq.regions$chrom
+    cutoff <- nchar("chr")+1
+    no.chr.list <- substring(chr.list,cutoff)
+    chipseq.regions$chrom <- no.chr.list
+
+    # Create the TF-Motif mapping using the correct function
     # Load the TF-Motif mapping data
-    load(system.file(package = "FPML", "extdata/Tfmotifmap.Rdata"))
-    
-    # Grab all motifs for the TFs we have
-    allmots <- c()
-    
-    for (TFname in names(TFs.to.motifs)) {
-        allmots  <-  c(allmots, TFs.to.motifs[[TFname]])
-    }
-    # length(unique(allmots))
-    
+    TFs.to.motifs <- map
+        
     # Run it in parallel
     sorted.TF.names <- sort(names(TFs.to.motifs))
     
@@ -29,17 +44,63 @@ constructLymphoblastDataset <- function(){
                                                         stop.on.error = FALSE,
                                                         log = TRUE),
                            default = TRUE)
-    all.TF.df <- BiocParallel::bplapply(sorted.TF.names, createTfDf, verbose = TRUE)
+    all.TF.df <- BiocParallel::bplapply(sorted.TF.names, createTfDf,
+                                        TFs.to.motifs = TFs.to.motifs,
+                                        chipseq.regions = chipseq.regions,
+                                        chipseq.hits = chipseq.hits,
+                                        verbose = TRUE)
     all.TF.df <- dplyr::bind_rows(all.TF.df)
     
     # If you want to take just distinct rows, do it here
     if(distinctFlag){
         all.TF.df <- all.TF.df %>% dplyr::distinct()
     }
+
+    if(!is.null(sampleSize)){
+
+        # Take a sample of the correct size
+        all.TF.df <- sampleTfDataset(all.TF.df, sampleSize)
+    }    
     
     return(all.TF.df)
     
 } # createLymphoblastDataset
+#----------------------------------------------------------------------------------------------------
+#' Create a TF-Motif Map in List Form
+#'
+#' Given a set of validation data (generally ChIPseq data), return a mapping of all TFs in the data
+#' to their JASPAR motifs. This will only return TFs for which there is a mapping to a JASPAR motif
+#' via our TOMTOM motif matching. If there is no corresponding JASPAR motif, the TF will be dropped.
+#'
+#' @param chipseq.hits A table of chipseq hits
+#'
+#' @return A list where each name is a TF from the supplied validation set and the each entry is
+#' a character vector of motifs that map to that TF
+#'
+#' @export
+
+mapTFsToMotifs <- function(chipseq.hits){
+
+    # Load our included TF mapping
+    TF.motif.pairs <- readRDS(system.file(package="FPML", "extdata/2017_08_23_Motif_TF_Map.RDS"))
+    names(TF.motif.pairs) <- c("motif", "tfs")
+
+    # Grab the unique set of chipseq TFs
+    unique.cs.tfs <- unique(chipseq.hits$name)
+    cs.tf.matches <- unique.cs.tfs[unique.cs.tfs %in% TF.motif.pairs$tfs]
+
+    # Grab the correct motifs for each match
+    getMotifsForTF <- function(TF, tf.pairs){
+        TF.df <- dplyr::filter(tf.pairs, tfs %in% TF)
+        return(TF.df$motif)
+    }
+    
+    TF.motif.map <- lapply(cs.tf.matches, getMotifsForTF, tf.pairs = TF.motif.pairs)
+
+    return(TF.motif.map)
+    
+} # mapTFsToMotifs
+
 #----------------------------------------------------------------------------------------------------
 #' Sample the FIMO/ChIPSeq Dataset
 #'
@@ -67,6 +128,10 @@ sampleTfDataset <- function(all.TF.df, sampleSize){
 #' Given a particular TF, pull all FIMO data for the motifs that map to that TF
 #'
 #' @param TF A transcription factor of interest
+#' @param TFs.to.motifs A list where each entry is a character vector of motifs and the name of each entry
+#' is a transcription factor
+#' @param chipseq.regions A table of ChIPseq regions
+#' @param chipseq.hits A table of ChIPseq hits
 #' @param verbose A Boolean flag indicating whether the function should print output (default = FALSE)
 #'
 #' @return The data frame containing all FIMO motifs that correspond to the supplied TF
@@ -74,9 +139,6 @@ sampleTfDataset <- function(all.TF.df, sampleSize){
 #' @export
 
 createTfDf <- function(TF, verbose = FALSE){
-
-    # Load the TF-Motif mapping data
-    load(system.file(package = "FPML", "extdata/Tfmotifmap.Rdata"))
 
     # Make the database connection
     db.fimo.dplyr <- DBI::dbConnect(drv = RPostgreSQL::PostgreSQL(),

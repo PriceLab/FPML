@@ -129,11 +129,12 @@ make.stats.df.from.preds <- function(pred.df, num.roc.points=101) {
     preds <- pred.df$Prediction
     cs.vals <- pred.df$ChIPseq.bound
 
-    roc.tf <- roc(cs.vals, preds,
-                  ret=c("threshold", "sens", "spec", "ppv", "npv", "acc"))
-    stats.tf <- coords((roc.tf),
-       seq(from=0, to=1, length.out=num.roc.points),
-       ret=c("threshold", "sens", "spec", "ppv", "npv", "acc"))
+    roc.tf <- pROC::roc(cs.vals, preds,
+                        ret=c("threshold", "sens", "spec", "ppv", "npv", "acc"))
+    stats.tf <- pROC::coords((roc.tf),
+                             seq(from=0, to=1,
+                                 length.out=num.roc.points),
+                             ret=c("threshold", "sens", "spec", "ppv", "npv", "acc"))
     mattcc.tf <- mattcc.curve(cs.vals, preds, num.points=num.roc.points)
     df.stats <- as.data.frame(t(stats.tf))
     df.stats$MattCC <- mattcc.tf
