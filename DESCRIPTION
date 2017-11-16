@@ -1,8 +1,8 @@
 Package: FPML
 Type: Package
 Title: Footprint Machine Learning
-Version: 0.1.1
-Date: 2017-11-15
+Version: 0.1.2
+Date: 2017-11-16
 Author: Matthew Richards
 Maintainer: Matthew Richards <mrichard@systemsbiology.org>
 Imports:

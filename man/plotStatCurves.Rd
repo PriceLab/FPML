@@ -13,12 +13,12 @@ are generated using the \code{buildBoostedModel} function}
 \item{dataType}{A string that must be one of c("seed16","seed20","both","motifsOnly"). This
 string denotes what labels will be given for the plots within the figures themselves}
 
+\item{filePaths}{A character string of length = 3, giving the 3 filepaths to which the function
+will save the curves. They should be in the following format: c(MCC_path, ROC_path, PrecRec_path)}
+
 \item{linearStatList}{The list containing 2 dataframes, one with the statistics from the full
 linear model, the other with statistics from the individual linear models. Generally, these are
 generated using the \code{buildLinearModels} function}
-
-\item{filepaths}{A character string of length = 3, giving the 3 filepaths to which the function
-will save the curves. They should be in the following format: c(MCC_path, ROC_path, PrecRec_path)}
 }
 \value{
 3 .PNG files, each containing one of the 3 figures for the given data.

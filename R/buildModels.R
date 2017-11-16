@@ -352,54 +352,34 @@ plotStatCurves <- function(boostedStats, linearStats, dataType, filePaths){
     # Bind together the input data
     all.stats.df <- bind_rows(boostedStats, linearStats)
 
-    # Based on dataType, change the following:
-    # 1) List of models to filter
-    # 2) Color palette
+    # Define the general color palette
     myPalette <- c("black","red","blue","green2","darkorange",
                    "purple","magenta","brown","cyan")
 
-    if(dataType == "both"){
-        
+    # Based on dataType, change the following:
+    # 1) List of models to filter out
+    # 2) Color palette
+    # 3) Individual linear model names
+    # 4) Order of models in the legend
+    if(dataType == "both"){       
         modelList <- c("glm h_max_score_16",
                        "glm w_min_score_16",
                        "glm h_max_score_20",
                        "glm w_min_score_20",
                        "gradient boosted model",
                        "linear model (all regressors)")
+
+        # Filter the data frame accordingly
+        all.stats.df <- all.stats.df %>%
+            dplyr::filter(Model.Name %in% modelList)
+
         myColors <- myPalette[1:6]
         names(myColors) <- c('gradient boosted model',
                              'linear model (all regressors)',
                              'HINT best score seed 16',
                              'HINT best score seed 20',
                              'Wellington best score seed 16',
-                             'Wellington best score seed 20')                             
-    }
-    else if(dataType == "motifsOnly"){
-
-        modelList <- c("glm motifscore",
-                       "glm gc_content",
-                       "glm asinh_ts_dist",
-                       "gradient boosted model",
-                       "linear model (all regressors)")
-    }
-    else{
-
-        modelList <- c("gradient boosted model",
-                       "linear model (all regressors)",
-                       "glm h_max_score",
-                       "glm w_min_score")
-    }
-    
-    # Filter the data frame accordingly
-    all.stats.df <- all.stats.df %>%
-        dplyr::filter(Model.Name %in% modelList)
-
-    # Make the color palette
-    colScale <- ggplot2::scale_colour_manual(name = "Model.Name",values = myColors)
-    
-    # Change labels and reorder model names based on dataType
-    if(dataType == "both"){
-
+                             'Wellington best score seed 20')
         all.stats.df$Model.Name[all.stats.df$Model.Name== 'glm h_max_score_16'] <-
             'HINT best score seed 16'
         all.stats.df$Model.Name[all.stats.df$Model.Name== 'glm h_max_score_20'] <-
@@ -409,39 +389,69 @@ plotStatCurves <- function(boostedStats, linearStats, dataType, filePaths){
         all.stats.df$Model.Name[all.stats.df$Model.Name== 'glm w_min_score_20'] <-
             'Wellington best score seed 20'
 
+        
         all.stats.df$Model.Name <- factor(all.stats.df$Model.Name,
-                                  levels = c('gradient boosted model',
-                                             'linear model (all regressors)',
-                                             'HINT best score seed 16',
-                                             'HINT best score seed 20',
-                                             'Wellington best score seed 16',
-                                             'Wellington best score seed 20'
-                                             )
-                                  )
-    }
-    else if(dataType == "motifsOnly"){
+                                          levels = c('gradient boosted model',
+                                                     'linear model (all regressors)',
+                                                     'HINT best score seed 16',
+                                                     'HINT best score seed 20',
+                                                     'Wellington best score seed 16',
+                                                     'Wellington best score seed 20'
+                                                     )
+                                          )
+    } else if(dataType == "motifsOnly"){
+        modelList <- c("glm motifscore",
+                       "glm gc_content",
+                       "glm asinh_ts_dist",
+                       "gradient boosted model",
+                       "linear model (all regressors)")
+
+        # Filter the data frame accordingly
+        all.stats.df <- all.stats.df %>%
+            dplyr::filter(Model.Name %in% modelList)
+        
+        myColors <- myPalette[c(1,2,7,8,9)]
+        names(myColors) <- c('gradient boosted model',
+                             'linear model (all regressors)',
+                             'GC content',
+                             'motif score',
+                             'arcsinh(TSS distance)'
+                             )
         all.stats.df$Model.Name[all.stats.df$Model.Name== 'glm gc_content'] <-
             'GC content'
         all.stats.df$Model.Name[all.stats.df$Model.Name== 'glm motifscore'] <-
             'motif score'
         all.stats.df$Model.Name[all.stats.df$Model.Name== 'glm asinh_tss_dist'] <-
             'arcsinh(TSS distance)'
-
         all.stats.df$Model.Name <- factor(all.stats.df$Model.Name,
-                                  levels = c('gradient boosted model',
-                                             'linear model (all regressors)',
-                                             'GC content',
-                                             'motif score',
-                                             'arcsinh(TSS distance)'
-                                             )
-                                  )
-    }
-    else if(dataType == "seed16"){
+                                          levels = c('gradient boosted model',
+                                                     'linear model (all regressors)',
+                                                     'GC content',
+                                                     'motif score',
+                                                     'arcsinh(TSS distance)'
+                                                     )
+                                          )
+        
+    } else if(dataType == "seed16"){
+        modelList <- c("gradient boosted model",
+                       "linear model (all regressors)",
+                       "glm h_max_score",
+                       "glm w_min_score")
+
+        # Filter the data frame accordingly
+        all.stats.df <- all.stats.df %>%
+            dplyr::filter(Model.Name %in% modelList)
+
+        myColors <- myPalette[1:4]
+        names(myColors) <- c('gradient boosted model',
+                             'linear model (all regressors)',
+                             'HINT best score seed 16',
+                             'Wellington best score seed 16'
+                             )
         all.stats.df$Model.Name[all.stats.df$Model.Name== 'glm h_max_score'] <-
             'HINT best score seed 16'
         all.stats.df$Model.Name[all.stats.df$Model.Name== 'glm w_min_score'] <-
             'Wellington best score seed 16'
-
         all.stats.df$Model.Name <- factor(all.stats.df$Model.Name,
                                           levels = c("gradient boosted model",
                                                      "linear model (all regressors)",
@@ -449,13 +459,26 @@ plotStatCurves <- function(boostedStats, linearStats, dataType, filePaths){
                                                      "Wellington best score seed 16"
                                                      )
                                           )
-    }
-    else{
+    } else {
+        modelList <- c("gradient boosted model",
+                       "linear model (all regressors)",
+                       "glm h_max_score",
+                       "glm w_min_score")
+
+        # Filter the data frame accordingly
+        all.stats.df <- all.stats.df %>%
+            dplyr::filter(Model.Name %in% modelList)
+
+        myColors <- myPalette[1:4]
+        names(myColors) <- c('gradient boosted model',
+                             'linear model (all regressors)',
+                             'HINT best score seed 20',
+                             'Wellington best score seed 20'
+                             )
         all.stats.df$Model.Name[all.stats.df$Model.Name== 'glm h_max_score'] <-
             'HINT best score seed 20'
         all.stats.df$Model.Name[all.stats.df$Model.Name== 'glm w_min_score'] <-
             'Wellington best score seed 20'
-
         all.stats.df$Model.Name <- factor(all.stats.df$Model.Name,
                                           levels = c("gradient boosted model",
                                                      "linear model (all regressors)",
@@ -463,22 +486,30 @@ plotStatCurves <- function(boostedStats, linearStats, dataType, filePaths){
                                                      "Wellington best score seed 20"
                                                      )
                                           )
-    }            
+    } 
     
+
+    # Make the color palette
+    colScale <- ggplot2::scale_colour_manual(name = "Model.Name",values = myColors)
+
+#    browser()
     # Plot the Matt CC Curve
-    png(filePaths[3])
-    plot.mattcc.curve(all.stats.df) + ggplot2::theme_minimal(base_size = 15) + colScale
-    dev.off()
+    p1 <- plot.mattcc.curve(all.stats.df) +
+        ggplot2::theme_minimal(base_size = 15) + colScale
+    ggplot2::ggsave(filename = filePaths[1],
+                    plot = p1)
 
     # Plot the ROC curve
-    png(filePaths[2])
-    plot.roc.curve(all.stats.df, TRUE) + ggplot2::theme_minimal(base_size = 15) + colScale
-    dev.off()
+    p2 <- plot.roc.curve(all.stats.df, TRUE) +
+        ggplot2::theme_minimal(base_size = 15) + colScale
+    ggplot2::ggsave(filename = filePaths[2],
+                    plot = p2)
     
     # Plot the Prec-Rec curve
-    png(filePaths[3])
-    plot.precrecall.curve(all.stats.df) + ggplot2::theme_minimal(base_size = 15) + colScale
-    #dev.off()
+    p3 <- plot.precrecall.curve(all.stats.df) +
+        ggplot2::theme_minimal(base_size = 15) + colScale
+    ggplot2::ggsave(filename = filePaths[3],
+                    plot = p3)
 }
 
 #----------------------------------------------------------------------------------------------------
