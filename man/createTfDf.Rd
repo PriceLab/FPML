@@ -4,12 +4,10 @@
 \alias{createTfDf}
 \title{Pull all FIMO Motifs for a Given TF}
 \usage{
-createTfDf(TF, verbose = FALSE)
+createTfDf(TF, TFs.to.motifs, chipseq.regions, chipseq.hits, verbose = FALSE)
 }
 \arguments{
 \item{TF}{A transcription factor of interest}
-
-\item{verbose}{A Boolean flag indicating whether the function should print output (default = FALSE)}
 
 \item{TFs.to.motifs}{A list where each entry is a character vector of motifs and the name of each entry
 is a transcription factor}
@@ -17,6 +15,8 @@ is a transcription factor}
 \item{chipseq.regions}{A table of ChIPseq regions}
 
 \item{chipseq.hits}{A table of ChIPseq hits}
+
+\item{verbose}{A Boolean flag indicating whether the function should print output (default = FALSE)}
 }
 \value{
 The data frame containing all FIMO motifs that correspond to the supplied TF

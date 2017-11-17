@@ -8,11 +8,14 @@
 #' @param sampleSize An integer value indicating how many rows of the data frame to take. If this
 #' argument is not specified or make to be NULL, the entire data frame will be returned
 #' (default = NULL)
+#' @param isTest A Boolean flag indicating whether this script is being run as a test. If TRUE,
+#' it will only use 2 TFs instead of the full set to save on time (default = FALSE)
 #' @return The complete motif/ChIPSeq dataset for lymphoblast
 #'
 #' @export
 
-constructLymphoblastDataset <- function(distinctFlag = TRUE, sampleSize = NULL){
+constructLymphoblastDataset <- function(distinctFlag = TRUE, sampleSize = NULL,
+                                        isTest = FALSE){
     
     # Read the ChIPseq data from the local database
     db.chipseq <- DBI::dbConnect(drv=RPostgreSQL::PostgreSQL(),
@@ -34,11 +37,15 @@ constructLymphoblastDataset <- function(distinctFlag = TRUE, sampleSize = NULL){
     chipseq.regions$chrom <- no.chr.list
 
     # Create the TF-Motif mapping using the correct function
-    # Load the TF-Motif mapping data
-    TFs.to.motifs <- map
+    TFs.to.motifs <- mapTFsToMotifs(chipseq.hits)
         
     # Run it in parallel
     sorted.TF.names <- sort(names(TFs.to.motifs))
+
+    # Cut it down to 2 TFs with 1 Motif each if it's just a test
+    if (isTest){
+        sorted.TF.names <- c("BCL3", "WRNIP1")
+    }    
     
     BiocParallel::register(BiocParallel::MulticoreParam(workers = 62,
                                                         stop.on.error = FALSE,
@@ -96,11 +103,11 @@ mapTFsToMotifs <- function(chipseq.hits){
     }
     
     TF.motif.map <- lapply(cs.tf.matches, getMotifsForTF, tf.pairs = TF.motif.pairs)
+    names(TF.motif.map) <- cs.tf.matches
 
     return(TF.motif.map)
     
 } # mapTFsToMotifs
-
 #----------------------------------------------------------------------------------------------------
 #' Sample the FIMO/ChIPSeq Dataset
 #'
@@ -138,7 +145,10 @@ sampleTfDataset <- function(all.TF.df, sampleSize){
 #'
 #' @export
 
-createTfDf <- function(TF, verbose = FALSE){
+createTfDf <- function(TF, TFs.to.motifs,
+                       chipseq.regions,
+                       chipseq.hits,
+                       verbose = FALSE){
 
     # Make the database connection
     db.fimo.dplyr <- DBI::dbConnect(drv = RPostgreSQL::PostgreSQL(),
@@ -177,6 +187,7 @@ createTfDf <- function(TF, verbose = FALSE){
     # find intersect using fast genomic ranges data structure
     # We make GR objects for the fimo motifs we just found and for the chipseq regions,
     # then find their overlaps
+    browser()
     gr.fimo.TF <- with(fimo.motifs.for.TF,
                        GenomicRanges::GRanges(chrom,
                                               IRanges::IRanges(start=start,
