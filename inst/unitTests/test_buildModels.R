@@ -1,10 +1,9 @@
 library(FPML)
 library(RUnit)
 #----------------------------------------------------------------------------------------------------
+
 runTests <- function(){
 
-    test_constructLymphoblastDataset # Takes a while, ~5 min
-    test_createTfDf() # Takes a while, ~5 min
     test_mapTFsToMotifs()
     test_sampleTfDataset()
 
@@ -12,41 +11,27 @@ runTests <- function(){
 
 #----------------------------------------------------------------------------------------------------
 # Test lymphoblast construction function
-test_constructLymphoblastDataset <- function(){
 
-    # Run the function using the "isTest" flag
-    result <- constructLymphoblastDataset(isTest = TRUE, distinctFlag = FALSE)
 
-    # Check rows in the result
-    checkTrue(is.data.frame(result))
-    checkEquals(nrow(result), 12604861)
-    
-    # Check unique motifs (there should be only 2)
-    checkEquals(length(unique(result$motifname)), 2)
 
-    # Check columns names
-    column.names <- c("motifname", "chrom", "start", "endpos", "strand",
-                      "motifscore", "pval", "empty", "sequence", "loc", "cs_hit")
-    checkTrue(all(column.names %in% names(result)))
-
-} # test_constructLymphoblstDataset
 #----------------------------------------------------------------------------------------------------
 # Test single TF function
+
 test_createTfDf <- function(){
 
     message("---test_createTfDf")
 
-    # Bring in the chipseq data
+    # Get the ChIPseq data
     db.chipseq <- DBI::dbConnect(drv=RPostgreSQL::PostgreSQL(),
-                             user = "trena",
-                             password = "trena",
-                             dbname = "chipseq",
-                             host= "localhost")                           
-    
+                                 user = "trena",
+                                 password = "trena",
+                                 dbname = "chipseq",
+                                 host= "localhost")                           
+
     # Grab the hits table as is
     chipseq.hits <- DBI::dbGetQuery(db.chipseq, "select * from hits")
     chipseq.hits <- tibble::as_tibble(chipseq.hits)
-    
+
     # Grab the regions table and modify the chrom column
     chipseq.regions <- DBI::dbGetQuery(db.chipseq, "select * from regions")
     chipseq.regions <- tibble::as_tibble(chipseq.regions)
@@ -54,7 +39,7 @@ test_createTfDf <- function(){
     cutoff <- nchar("chr")+1
     no.chr.list <- substring(chr.list,cutoff)
     chipseq.regions$chrom <- no.chr.list
-    
+
     # Create the TF-Motif mapping using the correct function
     TFs.to.motifs <- mapTFsToMotifs(chipseq.hits)
 
@@ -62,16 +47,7 @@ test_createTfDf <- function(){
     my.TF <- "BCL3"
     result <- createTfDf(my.TF, TFs.to.motifs, chipseq.regions, chipseq.hits, TRUE)
 
-    # Run tests
-    checkTrue(is.data.frame(result))
-    checkEquals(nrow(result), 2843902)
-
-    # Split Positive/negative
-    pos <- result %>% filter(cs_hit == 1)
-    neg <- result %>% filter(cs_hit == 0)
-
-    checkEquals(nrow(pos), 33752)
-    checkEquals(nrow(neg), 2810150)
+    
 
 } # test_createTfDf
 #----------------------------------------------------------------------------------------------------

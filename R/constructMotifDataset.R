@@ -8,13 +8,16 @@
 #' @param sampleSize An integer value indicating how many rows of the data frame to take. If this
 #' argument is not specified or make to be NULL, the entire data frame will be returned
 #' (default = NULL)
+#' @param numWorkers The number of parallel processes that should be run; in general, this should
+#' either be set to the number of expected TFs or to a number restricted by the constraints of
+#' the system (default = 62)
 #' @param isTest A Boolean flag indicating whether this script is being run as a test. If TRUE,
 #' it will only use 2 TFs instead of the full set to save on time (default = FALSE)
 #' @return The complete motif/ChIPSeq dataset for lymphoblast
 #'
 #' @export
 
-constructLymphoblastDataset <- function(distinctFlag = TRUE, sampleSize = NULL,
+constructLymphoblastDataset <- function(distinctFlag = TRUE, sampleSize = NULL, numWorkers = 62,
                                         isTest = FALSE){
     
     # Read the ChIPseq data from the local database
@@ -45,9 +48,10 @@ constructLymphoblastDataset <- function(distinctFlag = TRUE, sampleSize = NULL,
     # Cut it down to 2 TFs with 1 Motif each if it's just a test
     if (isTest){
         sorted.TF.names <- c("BCL3", "WRNIP1")
+        numWorkers <- 2
     }    
     
-    BiocParallel::register(BiocParallel::MulticoreParam(workers = 62,
+    BiocParallel::register(BiocParallel::MulticoreParam(workers = numWorkers,
                                                         stop.on.error = FALSE,
                                                         log = TRUE),
                            default = TRUE)
@@ -187,7 +191,6 @@ createTfDf <- function(TF, TFs.to.motifs,
     # find intersect using fast genomic ranges data structure
     # We make GR objects for the fimo motifs we just found and for the chipseq regions,
     # then find their overlaps
-    browser()
     gr.fimo.TF <- with(fimo.motifs.for.TF,
                        GenomicRanges::GRanges(chrom,
                                               IRanges::IRanges(start=start,
@@ -205,14 +208,14 @@ createTfDf <- function(TF, TFs.to.motifs,
     
     # Simply take the other rows as the negative fimo examples
     negative.fimo.examples.TF.df <- dplyr::setdiff(fimo.motifs.for.TF, positive.fimo.examples.TF.df)    
-        
+
     # annotate and collect all samples
-    positive.fimo.examples.TF.df <- tibble::as_tibble(dplyr::bind_colscbind(positive.fimo.examples.TF.df,
-                                                                            "cs_hit"=1))
-    negative.fimo.examples.TF.df <- tibble::as_tibble(dplyr::bind_cols(negative.fimo.examples.TF.df,
-                                                                       "cs_hit"=0))
-    all.fimo.examples.TF.df <- tibble::as_tibble(dplyr::bind_rows(positive.fimo.examples.TF.df,
-                                                                  negative.fimo.examples.TF.df))
+    positive.fimo.examples.TF.df <- dplyr::mutate(positive.fimo.examples.TF.df,
+                                                  "cs_hit"=1)
+    negative.fimo.examples.TF.df <- dplyr::mutate(negative.fimo.examples.TF.df,
+                                                  "cs_hit"=0)
+    all.fimo.examples.TF.df <- dplyr::bind_rows(positive.fimo.examples.TF.df,
+                                                negative.fimo.examples.TF.df)
 
     return(all.fimo.examples.TF.df)
 

@@ -17,8 +17,39 @@ runTests <- function(){
 #----------------------------------------------------------------------------------------------------
 # Test single TF function
 
+test_createTfDf <- function(){
 
+    message("---test_createTfDf")
 
+    # Get the ChIPseq data
+    db.chipseq <- DBI::dbConnect(drv=RPostgreSQL::PostgreSQL(),
+                                 user = "trena",
+                                 password = "trena",
+                                 dbname = "chipseq",
+                                 host= "localhost")                           
+
+    # Grab the hits table as is
+    chipseq.hits <- DBI::dbGetQuery(db.chipseq, "select * from hits")
+    chipseq.hits <- tibble::as_tibble(chipseq.hits)
+
+    # Grab the regions table and modify the chrom column
+    chipseq.regions <- DBI::dbGetQuery(db.chipseq, "select * from regions")
+    chipseq.regions <- tibble::as_tibble(chipseq.regions)
+    chr.list <- chipseq.regions$chrom
+    cutoff <- nchar("chr")+1
+    no.chr.list <- substring(chr.list,cutoff)
+    chipseq.regions$chrom <- no.chr.list
+
+    # Create the TF-Motif mapping using the correct function
+    TFs.to.motifs <- mapTFsToMotifs(chipseq.hits)
+
+    # Run on a TF with only 1 motif
+    my.TF <- "BCL3"
+    result <- createTfDf(my.TF, TFs.to.motifs, chipseq.regions, chipseq.hits, TRUE)
+
+    
+
+} # test_createTfDf
 #----------------------------------------------------------------------------------------------------
 # Test TF-mapping function
 
