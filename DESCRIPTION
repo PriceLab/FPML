@@ -1,8 +1,8 @@
 Package: FPML
 Type: Package
 Title: Footprint Machine Learning
-Version: 0.1.4
-Date: 2017-11-17
+Version: 0.1.5
+Date: 2017-11-20
 Author: Matthew Richards
 Maintainer: Matthew Richards <mrichard@systemsbiology.org>
 Imports:
@@ -26,7 +26,8 @@ Imports:
     caTools,
     MotifDb,
     Biostrings,
-    BSgenome.Hsapiens.UCSC.hg38
+    BSgenome.Hsapiens.UCSC.hg38,
+    S4Vectors
 Depends:
     R (>= 3.4.0),
     dplyr (>= 0.7.4)

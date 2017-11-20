@@ -115,7 +115,7 @@ mergeFootprintsOneChrom <- function(chrom_str,
         dplyr::group_by(start, endpos, name, strand) %>%
         dplyr::mutate(h_count = n(), h_max_score = max(h_score)) %>%
         dplyr::select(-h_score) %>%
-        tibble::as_tibble ->
+        tibble::as_tibble() ->
         chrom_hint_all_tbl
 
     # Grab only distinct ones
@@ -132,7 +132,7 @@ mergeFootprintsOneChrom <- function(chrom_str,
         dplyr::group_by(start, endpos, name, strand) %>%
         dplyr::mutate(w_count = n(), w_min_score = min(w_score)) %>%
         dplyr::select(-w_score) %>%
-        tibble::as_tibble ->
+        tibble::as_tibble() ->
         chrom_well_all_tbl
 
     # keep only min wellington score but count total nontrivial scores

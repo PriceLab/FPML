@@ -11,6 +11,7 @@ runTests <- function(){
 #----------------------------------------------------------------------------------------------------
 # Test lymphoblast construction function
 
+## Too intensive; it just calls the below function, so do that for now
 
 
 #----------------------------------------------------------------------------------------------------
@@ -20,9 +21,29 @@ test_mergeFootprintsOneChrom <- function(){
 
     message("---test_mergeFootprintsOneChrom")    
 
-    # Construct the 5 datasets in mini form
-    # Do it explicitly using the actual data
 
+    # Load the 5 data subsets
+    load(system.file(package="FPML", "extdata/mergeTestData.1000.Rdata"))
+    load(system.file(package="FPML", "extdata/fpSubTables.Rdata"))
+
+    # Run the one-chromosome function
+    results <- mergeFootprintsOneChrom(chrom_str = "Y",
+                                       fimo_tbl = sample.data,
+                                       hint_regions_tbl = hint.regions.Y,
+                                       hint_hits_tbl = hint.hits.Y,
+                                       well_regions_tbl= well.regions.Y,
+                                       well_hits_tbl= well.hits.Y)
+
+    # Should be 7 x 14
+    checkTrue(ncol(results) == 14)
+    checkTrue(nrow(results) == 7)
+
+    # Check that the columns are all right
+    expected.names <- sort(c("motifname", "chrom", "start", "endpos", "strand", "motifscore",
+                        "pval", "sequence", "loc", "cs_hit", "h_count", "h_max_score",
+                        "w_count", "w_min_score"))
+    
+    checkEquals(sort(names(results)), expected.names)
 
     
 } # test_mergeFootprintsOneChrom

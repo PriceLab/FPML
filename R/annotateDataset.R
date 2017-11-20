@@ -49,6 +49,8 @@ annotateFootprintData <- function(fp.df){
 #' motifs that appear in the data frame.
 #'
 #' @return The one-hot data frame of motifs and their membership in different classes
+#'
+#' @export
 
 createMotifClassMap <- function(fp.df){
 
@@ -59,7 +61,7 @@ createMotifClassMap <- function(fp.df){
     # Make Jaspar translation table
     jaspar.motifs <- MotifDb::subset(MotifDb::MotifDb, dataSource == "jaspar2016")
     jaspar.df <- dplyr::data_frame(Long.Name = names(jaspar.motifs),
-                                   Short.Name = trimws(values(jaspar.motifs)$providerName)
+                                   Short.Name = trimws(S4Vectors::values(jaspar.motifs)$providerName)
                                    )
 
     # Add long motif names to the Jaspar data
@@ -75,9 +77,9 @@ createMotifClassMap <- function(fp.df){
     # Make it into a one-hot form
     filtered.motif.class %>%
         # clean up and subset to only relevant motifs
-        dplyr::mutate_all(str_trim) %>%
+        dplyr::mutate_all(stringr::str_trim) %>%
         # fix double classes
-        dplyr::mutate(class = str_split(class, "::")) %>%
+        dplyr::mutate(class = stringr::str_split(class, "::")) %>%
         tidyr::unnest(class) %>%
         # create one-hot(ish, some double matches) version
         dplyr::mutate(dummy_yesno = 1) %>%
@@ -100,6 +102,8 @@ createMotifClassMap <- function(fp.df){
 #' to use as a window (default = 100)
 #'
 #' @return The GC content of the supplied region
+#'
+#' @export
 
 getGCContent <- function(start_col, end_col, chrom_col, shoulder=100) {
 
@@ -143,7 +147,7 @@ addTSSDistance <- function(annotated.df, host = "localhost"){
         dplyr::mutate(ref = ifelse(strand == '+', start, endpos)) %>%
         dplyr::select("chrom" = "chr", "ts_start" = "ref") %>%
         dplyr::filter(chrom != 'chrMT') %>%
-        dplyr::mutate(chrom=str_sub(chrom,  start = 4)) ->
+        dplyr::mutate(chrom=stringr::str_sub(chrom,  start = 4)) ->
         tss_tbl
 
     motif_gr <- GenomicRanges::makeGRangesFromDataFrame(annotated.df,
