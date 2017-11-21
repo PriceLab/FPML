@@ -1,6 +1,8 @@
 library(FPML)
 library(RUnit)
 #----------------------------------------------------------------------------------------------------
+# Load the test data (merged.df)
+load(system.file(package="FPML", "extdata/annotateTestInput.Rdata"))
 
 runTests <- function(){
 
@@ -15,61 +17,96 @@ test_annotateFootprintData <- function(){
 
     message("---test_annotateFootprintData")
 
-    # Load the play merged data (merged.df)
-    load(system.file(package="FPML", "extdata/annotateTestInput.Rdata"))
-
     # Get the results of annotating
     annotated.df <- annotateFootprintData(merged.df)
 
     # Check that the dimensions are correct
+    checkEquals(ncol(annotated.df), 21)
+    checkEquals(nrow(annotated.df), 7)
 
+    # Check that we added 7 columns
+    checkEquals(ncol(merged.df) + 7, ncol(annotated.df))
 
     # Check that column names are correct
-
+    expected.names = sort(c("motifname",
+                            "chrom",
+                            "start",                                
+                            "endpos",                               
+                            "strand",                               
+                            "motifscore",                           
+                            "pval",
+                            "sequence",
+                            "loc",
+                            "cs_hit",
+                            "h_max_score",
+                            "w_min_score",
+                            "h_frac",                               
+                            "w_frac",                               
+                            "gc_content",
+                            "asinh_tss_dist",
+                            "Basic helix-loop-helix factors (bHLH)",
+                            "C2H2 zinc finger factors",    
+                            "Fork head / winged helix factors",
+                            "Homeo domain factors",                 
+                            "Zinc-coordinating"))
+    checkEquals(sort(names(annotated.df)), expected.names)
     
-
-} # test_createTfDf
+} # test_annotateFootprintData
 #----------------------------------------------------------------------------------------------------
-# Test TF-mapping function
+# Test Motif Class Mapping
 
-test_mapTFsToMotifs <- function(){
+test_createMotifClassMap <- function(){
 
-    message("---test_mapTFsToMotifs")
+    message("---test_createMotifClassMap")
 
-    # Create a small set of TFs to map
-    my.tfs <- c("E2F4", "BRCA1", "SRF", "NRF1", "YY1",
-                "TBL1XR1", "IRF3", "GABPB1", "TAF1","BATF"   )
-    fake.df <- data_frame(name = my.tfs)
-    fake.map <- mapTFsToMotifs(fake.df)
+    # Create the map for my merged data; it's in one-hot form
+    hot.map <- createMotifClassMap(merged.df)
 
-    # The mapping doesn't find one of them
-    checkEquals(length(fake.map), 9)
-    checkEquals(setdiff(my.tfs, names(fake.map)), "GABPB1")
+    # The mapping should have the same number of rows as the input
+    checkEquals(nrow(hot.map), nrow(merged.df), 7)
+    checkEquals(ncol(hot.map), 6)
 
-    # Check the data type
-    all.types <- sapply(fake.map, class)
-    checkTrue(all(all.types == "character"))
+    # Check that the 6 columns are the ones we expect
+    expected.names <- sort(c("motifname",
+                             "Basic helix-loop-helix factors (bHLH)",
+                             "C2H2 zinc finger factors",
+                             "Fork head / winged helix factors",
+                             "Homeo domain factors",
+                             "Zinc-coordinating"))
+    checkEquals(sort(names(hot.map)), expected.names)
 
-    # Check a couple elements
-    checkEquals(length(fake.map[[1]]), 12)
-    checkEquals(length(fake.map[[8]]), 5)
-    
-
-} # test_mapTFsToMotifs
+} # test_createMotifClassMap
 #----------------------------------------------------------------------------------------------------
-# Test Sampling Function
-test_sampleTfDataset <- function(){
+test_getGCContent <- function(){
 
-    message("---test_sampleTfDataset")
+    message("---test_getGCContent")
+        
+    # Add a column of GC content
+    gc.added <- merged.df %>%
+        dplyr::mutate("gc_content" = getGCContent(start, endpos, chrom))
 
-    # Make a fake dataframe and sample it
-    fake.df <- data_frame(x = sample(1:1e6), y = sample(1:1e6))
+    # Check that there's 1 more column and the same number of rows
+    checkTrue(ncol(gc.added) == ncol(merged.df) + 1)
+    checkTrue(nrow(gc.added) == nrow(merged.df))
 
-    fake.subset <- sampleTfDataset(fake.df, 1000)
-
-    checkEquals(nrow(fake.subset), 1000)
-    checkEquals(ncol(fake.subset), 2)
-    checkEquals(dplyr::intersect(fake.df, fake.subset), fake.subset)
+    # Check that it's numeric
+    checkEquals(class(gc.added$gc_content), "numeric")
     
-} # test_sampleTfDataset
+} # test_getGCContent
+#----------------------------------------------------------------------------------------------------
+test_addTSSDistance <- function(){
+
+    message("---test_addTSSDistance")
+
+    # Add a column of TSS distance, transformed by asinh
+    tss.added <- addTSSDistance(merged.df)
+
+    # Make sure we added a column, but not a row
+    checkTrue(ncol(tss.added) == ncol(merged.df) + 1)
+    checkTrue(nrow(tss.added) == nrow(merged.df))
+
+    # Check that it's a numeric
+    checkEquals(class(tss.added$asinh_tss_dist), "numeric")
+    
+} # test_addTSSDistance
 #----------------------------------------------------------------------------------------------------

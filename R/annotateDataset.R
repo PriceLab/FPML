@@ -153,13 +153,13 @@ addTSSDistance <- function(annotated.df, host = "localhost"){
     motif_gr <- GenomicRanges::makeGRangesFromDataFrame(annotated.df,
                                                         start.field="start",
                                                         end.field="endpos")
-    tss_gr <- GenomicRanges::makeGRangesFromDataFrame(annotated.df,
+    tss_gr <- GenomicRanges::makeGRangesFromDataFrame(tss_tbl,
                                                       start.field="ts_start",
                                                       end.field="ts_start")
     dist_to_nearest_tss <- GenomicRanges::distanceToNearest(motif_gr,
                                                             tss_gr,
                                                             select="arbitrary")
-    tss_dists <- mcols(dist_to_nearest_tss)[,1]
+    tss_dists <- S4Vectors::mcols(dist_to_nearest_tss)[,1]
 
     annotated.df %>%
         dplyr::mutate(asinh_tss_dist = asinh(tss_dists)) ->
