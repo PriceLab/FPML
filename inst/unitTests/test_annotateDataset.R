@@ -4,9 +4,22 @@ library(RUnit)
 # Load the test data (merged.df)
 load(system.file(package="FPML", "extdata/annotateTestInput.Rdata"))
 
+# Get the chipseq hit data locally
+db.chipseq <- DBI::dbConnect(drv=RPostgreSQL::PostgreSQL(),
+                             user = "trena",
+                             password = "trena",
+                             dbname = "chipseq",
+                             host= "localhost")                           
+
+chipseq.hits <- DBI::dbGetQuery(db.chipseq, "select * from hits")
+chipseq.hits <- tibble::as_tibble(chipseq.hits)
+
 runTests <- function(){
 
     test_annotateFootprintData()
+    test_createMotifClassMap()
+    test_getGCContent()
+    test_addTSSDistance()    
 
     } # runTests
 
@@ -16,9 +29,9 @@ runTests <- function(){
 test_annotateFootprintData <- function(){
 
     message("---test_annotateFootprintData")
-
+    
     # Get the results of annotating
-    annotated.df <- annotateFootprintData(merged.df)
+    annotated.df <- annotateFootprintData(merged.df, chipseq.hits)
 
     # Check that the dimensions are correct
     checkEquals(ncol(annotated.df), 21)
@@ -59,8 +72,11 @@ test_createMotifClassMap <- function(){
 
     message("---test_createMotifClassMap")
 
+    # Grab the proper mapping
+    TFs.to.motifs <- mapTFsToMotifs(chipseq.hits)
+    
     # Create the map for my merged data; it's in one-hot form
-    hot.map <- createMotifClassMap(merged.df)
+    hot.map <- createMotifClassMap(merged.df, TFs.to.motifs)
 
     # The mapping should have the same number of rows as the input
     checkEquals(nrow(hot.map), nrow(merged.df), 7)

@@ -10,10 +10,13 @@
 #'
 #' @export
 
-annotateFootprintData <- function(fp.df){
+annotateFootprintData <- function(fp.df, chipseq.hits){
+
+    # Create the TF-motif map using the function from "constructMotifDataset"
+    TFs.to.motifs <- mapTFsToMotifs(chipseq.hits)
 
     # Get the motif data
-    motif_class_hot <- createMotifClassMap(fp.df)
+    motif_class_hot <- createMotifClassMap(fp.df, TFs.to.motifs)
     
     # Add the motif class to the dataframe
     annotated.df <- dplyr::left_join(fp.df,
@@ -52,10 +55,9 @@ annotateFootprintData <- function(fp.df){
 #'
 #' @export
 
-createMotifClassMap <- function(fp.df){
+createMotifClassMap <- function(fp.df, TFs.to.motifs){
 
     # Load data on motif mapping
-    load(system.file(package="FPML", "extdata/Tfmotifmap.Rdata"))
     load(system.file(package="FPML", "extdata/motif_class_pairs.Rdata"))
 
     # Make Jaspar translation table

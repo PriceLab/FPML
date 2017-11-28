@@ -153,3 +153,6 @@ So, to once again sum up the section:
 * Don't try to run on anything but seed 16 OR seed 20; you can't do both at once
 * Use the `mergeLymphoblastFootprints()` function as a guide and `mergeFootprintsOneChrom()` as your workhorse if you want to do it for a different tissue or dataset
 
+# Annotating the Dataset (`annotateDataset.R`)
+
+The third step is the same regardless of 
