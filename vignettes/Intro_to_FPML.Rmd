@@ -1,0 +1,155 @@
+---
+title: "How to use FPML"
+author: "Matt Richards"
+date: "11/27/2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, eval = FALSE)
+```
+
+# Introduction 
+
+The FPML (Footprint Machine Learning) package is an internal package to the Price-Hood lab. It is intended to provide functions for quickly performing the following operations:
+
+1. Constructing motif datasets with associated ChIPseq data
+2. Merging these motif datasets with HINT and Wellington footprinting information for a given tissue and seed size
+3. Annotating these merged data with information about TF class, distance from a TSS, and GC content
+4. Using the annotated datasets to construct gradient boosted and linear models, plus assessing these models numerically and graphically.
+
+The basic categories described above form the core of the FPML package and roughly divide nearly all the functions contained within. As such, the categories will be used to guide you through the different operations you'll want to run. After going through each category individually, we will put them all together in the final section to demonstrate exactly how to run the machine learning analysis for the lymphoblast dataset. 
+
+One more thing before we jump in is to consider the prerequisites for running the package. I'm assuming you are comfortable with looking at the package dependencies and installing those as needed, but even so, you'll still need the following PostgreSQL databases:
+
+1. The `hg38` database 
+2. The `chipseq` database, which includes the lymphoblast chipseq data
+3. The `fimo` database
+4. Both the HINT and Wellington databases for your tissue of interest, both seeds 16 and 20
+5. Both the HINT and Wellington databases for lymphoblast, both seeds 16 and 20
+6. ChIPseq data for any other tissue you want to use
+
+If you're using just the lymphoblast data, this means 7 databases at a minimum; for any other tissue, it'll mean more like 12. For the purposes of this vignette, I'll assume you're just using the lymphoblast data. 
+
+# Constructing a Motif Dataset (`constructMotifDataset.R`)
+
+This script contains 4 functions, all of which are aimed at constructing your initial dataset of motifs. If you're only interested in reproducing the lymphoblast dataset, I have included a function called `constructLymphoblastDataset()` that you can call directly. This function wraps the other functions into one place so you can just run one thing. Most basically, I've made it so you can just run without supplying any other arguments:
+
+```{r}
+# Run with all default parameters
+all.TFs <- constructLymphoblastDataset()
+```
+
+If you run that command on an Amazon EC2 instance with enough power, that will probably take you something like an hour or two. That will give you ALL the data, which is several hundred million points. However, there are a few modifications you might want to make; first, it's worth noting that in putting together the dataset, I screen out all duplicate rows using `dplyr::distinct()`. If you don't do that, the dataset is more like 2 billion rows, and most of it is repeated information, so I strongly suggest leaving that be. But if you'd really like to have ALL the raw information, you can get it by setting the `distinctFlag` to `FALSE`:
+
+```{r}
+# Run and return all rows, including duplicated rows
+all.TFs <- constructLymphoblastDataset(distinctFlag = FALSE)
+```
+
+Now that'll actually go faster, because it doesn't have to do the step of screening out duplicates, but you'll have a much more onerous dataset. 
+
+If you find that, regardless of your `distinctFlag` value, your dataset is much larger than you'd like, you can take a random sample of it by manipulating the `sampleSize` parameter. By default, we just return all the data (either distinct or not, depending on your preference), but you can take a smaller sample as follows:
+
+```{r}
+# Run it such that it returns 10 million random rows
+all.TFs <- constructLymphoblastDataset(sampleSize = 1e7)
+```
+
+This command DOES use only distinct rows because that's the default, but after finding distinct rows, it takes a 10 million row sample size, something like 2-3% of the full dataset. This is actually the command I would use if I were replicating exactly what we did for the paper. 
+
+There's one more parameter you might actually want to manipulate, and that's the `numWorkers` parameter. As the name suggests, it determines how many processes to run for putting together the dataset. The function uses the `BiocParallel` package (for goodness sake, DO NOT run it on Windows, it'll take forever) and by default, it assigns 62 workers. Why 62? Because that's how many TFs we have to look for. If you're working with fewer cores or would just like to rachet that down, go ahead and change the parameter:
+
+```{r}
+# Run with half as many workers
+all.TFs <- constructLymphoblastDataset(numWorkers = 31)
+```
+
+Here, I've told it to run with half as many workers. If you're running on Khaleesi, you'd want to do something like this as you don't have 62 cores to play with. 
+
+## Other Constructing Functions
+
+For purposes of the lymphoblast datset, the previously described function should be sufficient and you shouldn't really have to look under the hood much. However, if you're debugging or using another tissue, you'll definitely want to look at these too. Most importantly, there's the `createTfDf()` function, which grabs all motifs from FIMO for a given TF and adds ChIPseq data to them. In order to run it, you'll need 4 things:
+
+* `TF`: a TF of interest
+* `TFs.to.motifs`: a list that maps TFs to their motifs; every list entry should be a character vector of motifs, and each entry should have a name that corresponds to a TF. If you don't have this yet, I'll describe a function that creates it (`mapTFsToMotifs()`) shortly. 
+* `chipseq.regions`: a data frame of chipseq regions, formatted exactly like the table in the `chipseq` database. Generally, it's just the exact table read from that database
+* `chipseq.hits`: a data frame of chipseq hits, formatted exactly like the table in the `chipseq` database. Much like the previous entry, you generally just read it from the database
+
+Once you've got all of those things, you can run as follows:
+
+```{r}
+# Grab data for one TF
+tf.data <- createTfDf(TF, TFs.to.motifs, chipseq.regions, chipseq.hits)
+```
+
+Depending on how many motifs map to your TF, this could take tens of minutes or more like an hour or two. It's worth noting that this is the exact function used by the `createLymphoblastDataset()` function in parallel; that function merely creates all the proper arguments and then calls this function in parallel. Thus, if you want to know more about how to get the proper arguments, that function is a great place to refer to. 
+
+On the same subject, it's worth quickly going over how to create your TF-to-motif mapping. Rather than include another database dependency, I've just stored our universal TF-motif mapping (`2017_08_23_Motif_TF_Map.RDS`) in the `extdata` folder of this package. Then, to create a list of the proper format for fishing out motifs from FIMO, all you need to do is feed in your `chipseq.hits` data frame as follows:
+
+```{r}
+# Create the TF-motif mapping in list form
+TFs.to.motifs <- mapTFsToMotifs(chipseq.hits)
+```
+
+That will give you the list you need. A final function I've created is the one that takes the proper sample size. It's very simple, but I found that it was easier to remember the one function call than it was to call a couple commands in sequence. So, if you've made your dataset and you'd like to take a smaller sample size of it, simply call it as follows:
+
+```{r}
+# Take a sample of some size
+sampled.data <- sampleTfDataset(tf.data, sampleSize = 1e7)
+```
+
+The `tf.data` should be your full dataframe of motifs and the `sampleSize` should be whatever integer you want to give it. 
+
+To wrap up this section, here's a couple quick bullet points to sum up:
+
+* If you want to mess around with lymphoblast data, probably just use the `constructLymphoblastDataset()` function
+* If you're working with other data, use the other 3 functions, but you can probably just follow the same basic code found in `constructLymphoblastDataset()`
+
+# Merging with Footprint Data (`mergeFootprintData.R`)
+
+This script contains just 2 functions: one for merging data for a single chromosome, one for using that function for all chromosomes in lymphoblast. I'll begin by describing the lymphoblast case (aka what you'll probably want to use to start with), then I'll talk about the simpler function to prepare you for cases where you'll have to go off the beaten path. 
+
+First, let's talk about the lymphoblast data. We'll assume here that your constructed dataset from the previous step was called `fimo.df` just for consistency with the script. Assuming that we're running on seed 20 and the footprint databases are all local, I can simply call it as follows:
+
+```{r}
+# Merge in lymphoblast footprints for seed 20
+merged.df <- mergeLymphoblastFootprints(fimo.df, 20)
+```
+
+This is a pretty long step, basically the longest of the whole process; figure on this taking maybe a day. And PLEASE run this on something powerful, lest you be at this for a week. 
+
+It's worth noting that you could supply the seed number as an integer OR as a string as it's just pasted onto a string in the script. But you can't do both seeds at once with the script; choose either "16" or "20" and if you want to do both, run them separately. You can join up the datasets later, but you can't search for them at the same time as they use different databases. 
+
+Now there is one more option you should know about, which is the `host` option. By default it's set to `localhost`, assuming that the databases are local to where you're running the function. But if not, you could specify their location:
+
+```{r}
+# Merge in footprints for seed 16, using databases on Khaleesi
+merged.df <- mergeLymphoblastFootprints(fimo.df, 16, host = "khaleesi")
+```
+
+At the moment, we only look at the default port (`port = 5432`) for databases; if this becomes a problem, we can always add the `port` option to the scripts as well; it may be that by the time you read this vignette, I've already done so. But for now, we'll just assume the port is the default. 
+
+## Merging for one Chromosome
+
+As before, the lymphoblast-specific function simply uses a more basic function and does so in a parallel fashion. In this case, the basic function takes a chromosome, the fimo dataframe, and the relevant database tables for HINT/Wellington and for regions/hits. It will go through all of the relevant footprint tables and add footprint data from them to the fimo data frame we fed in. 
+
+In the lymphoblast function, this is done through a parallel process that runs 24 workers (1:22, X, Y) at once. But if we're running on just one chromosome, it'll be something like this:
+
+```{r}
+# Run on chromosome Y
+merged.Y <- mergeFootprintsOneChrom("Y", fimo.df, 
+                                    hints_regions_tbl,
+                                    hint_hits_tbl,
+                                    well_regions_tbl, 
+                                    well_hits_tbl)
+```
+
+Here, I'm assuming you've got connections to the HINT/Wellington tables that are open and ready to go. If you're not sure how to create those connections, the `mergeLymphoblastFootprints()` gives a great example of it. It essentially amounts to 1) Creating the proper database connection, and 2) Pointing to the correct tables. 
+
+So, to once again sum up the section:
+
+* If you're using lymphoblast, just use the `mergeLymphoblastFootprints()` function and specify the seed you want
+* Don't try to run on anything but seed 16 OR seed 20; you can't do both at once
+* Use the `mergeLymphoblastFootprints()` function as a guide and `mergeFootprintsOneChrom()` as your workhorse if you want to do it for a different tissue or dataset
+
