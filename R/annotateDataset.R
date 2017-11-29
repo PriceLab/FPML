@@ -4,13 +4,14 @@
 #' Annotate the footprint and FIMO dataframe by adding TF class, GC content, and TSS distance
 #'
 #' @param fp.df The data frame of FIMO motifs and footprints
+#' @param chipseq.hits The dataframe of ChIPseq hits corresponding to the dataset
 #'
 #' @return The supplied data frame with added columns for the one-hot coded TF class data, GC
 #' content, and asinh-transformed distance from the nearest transcription start site
 #'
 #' @export
 
-annotateFootprintData <- function(fp.df, chipseq.hits){
+annotateFootprintData <- function(fp.df, chipseq.hits, host = "localhost", port = "5432"){
 
     # Create the TF-motif map using the function from "constructMotifDataset"
     TFs.to.motifs <- mapTFsToMotifs(chipseq.hits)
@@ -27,7 +28,7 @@ annotateFootprintData <- function(fp.df, chipseq.hits){
         dplyr::mutate("gc_content" = getGCContent(start,endpos,chrom))
 
     # Add TSS distance
-    annotated.df <- addTSSDistance(annotated.df)
+    annotated.df <- addTSSDistance(annotated.df, host, port)
     
     # Change counts to fracs
     annotated.df %>%
@@ -128,19 +129,21 @@ getGCContent <- function(start_col, end_col, chrom_col, shoulder=100) {
 #'
 #' @param annotated.df A dataframe containing FIMO motifs, ChIPSeq data, and footprints data
 #' @param host A string indicating the location of the hg38 database (default = "localhost")
+#' @param port A string indicating the port for the hg38 database (default = "5432")
 #'
 #' @return The dataframe with an added column containing the asinh-transformed distance from each
 #' motif to the nearest transcription start site
 #'
 #' @export
 
-addTSSDistance <- function(annotated.df, host = "localhost"){
+addTSSDistance <- function(annotated.df, host = "localhost", port = "5432"){
 
     db_gtf <- DBI::dbConnect(RPostgreSQL::PostgreSQL(),
                              user = "trena",
                              password = "trena",
                              dbname = "hg38",
-                             host = host)
+                             host = host,
+                             port = port)
     query <- "select * from gtf where moleculetype='gene' and gene_biotype='protein_coding'"
     tss_raw_table <- DBI::dbGetQuery(db_gtf,
                                      query)[, c("chr", "gene_name", "start", "endpos","strand")]

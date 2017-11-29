@@ -11,6 +11,8 @@
 #' @param numWorkers The number of parallel processes that should be run; in general, this should
 #' either be set to the number of expected TFs or to a number restricted by the constraints of
 #' the system (default = 62)
+#' @param fimoHost A string indicating the location of the FIMO database (default = "localhost")
+#' @param fimoPort A string indicating the port where the FIMO database is located (default = "5432")
 #' @param isTest A Boolean flag indicating whether this script is being run as a test. If TRUE,
 #' it will only use 2 TFs instead of the full set to save on time (default = FALSE)
 #' @return The complete motif/ChIPSeq dataset for lymphoblast
@@ -18,7 +20,7 @@
 #' @export
 
 constructLymphoblastDataset <- function(distinctFlag = TRUE, sampleSize = NULL, numWorkers = 62,
-                                        isTest = FALSE){
+                                        fimoHost = "localhost", fimoPort = "5432", isTest = FALSE){
     
     # Read the ChIPseq data from the local database
     db.chipseq <- DBI::dbConnect(drv=RPostgreSQL::PostgreSQL(),
@@ -59,6 +61,8 @@ constructLymphoblastDataset <- function(distinctFlag = TRUE, sampleSize = NULL, 
                                         TFs.to.motifs = TFs.to.motifs,
                                         chipseq.regions = chipseq.regions,
                                         chipseq.hits = chipseq.hits,
+                                        fimoHost = fimoHost,
+                                        fimoPort = fimoPort,
                                         verbose = TRUE)
     all.TF.df <- dplyr::bind_rows(all.TF.df)
     
@@ -143,6 +147,8 @@ sampleTfDataset <- function(all.TF.df, sampleSize){
 #' is a transcription factor
 #' @param chipseq.regions A table of ChIPseq regions
 #' @param chipseq.hits A table of ChIPseq hits
+#' @param fimoHost A string indicating the host for the FIMO database (default = "localhost")
+#' @param fimoPort A string indicating the port for the FIMO database (default = "5432")
 #' @param verbose A Boolean flag indicating whether the function should print output (default = FALSE)
 #'
 #' @return The data frame containing all FIMO motifs that correspond to the supplied TF
@@ -152,6 +158,8 @@ sampleTfDataset <- function(all.TF.df, sampleSize){
 createTfDf <- function(TF, TFs.to.motifs,
                        chipseq.regions,
                        chipseq.hits,
+                       fimoHost = "localhost",
+                       fimoPort = "5432"
                        verbose = FALSE){
 
     # Make the database connection
@@ -159,7 +167,8 @@ createTfDf <- function(TF, TFs.to.motifs,
                                     user = "trena",
                                     password = "trena",
                                     dbname = "fimo",
-                                    host = "localhost")
+                                    host = fimoHost,
+                                    port = fimoPort)
     tbl.fimo.dplyr <- dplyr::tbl(db.fimo.dplyr, "fimo_hg38")
     
     # Grab all hits for a TF, then grab the regions of those hits

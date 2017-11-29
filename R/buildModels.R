@@ -173,7 +173,7 @@ buildBoostedModel <- function(dataList){
 #'
 #' @param annotated.df The fully annotated FIMO motif dataset. This must be a data frame, or else
 #' the function will stop and give an error.
-#' @param seed A character string that must be one of c("seed16","seed20","both"). This seed should
+#' @param seed A character string that should be one of c("16","20","both"). This seed should
 #' match the data in the data frame
 #' @param hintCutoff A cutoff value used as a threshold on the HINT footprint score. Only scores
 #' above this threshold will be kept (default = 3.6)
@@ -189,9 +189,10 @@ buildBoostedModel <- function(dataList){
 #' @export
 
 prepModelData <- function(annotated.df, seed,
-                            hintCutoff = 3.6,
-                            wellCutoff = -2.3,
-                            motifsOnly = FALSE){
+                          hintCutoff = -Inf,
+                          wellCutoff = Inf,
+                          motifsOnly = FALSE,
+                          biasTraining = FALSE){
 
     # Catch non-data frames
     stopifnot("data.frame" %in% class(annotated.df))
@@ -248,6 +249,9 @@ prepModelData <- function(annotated.df, seed,
 
     remove(filtered.df)
 
+    # Bias the training set, if desired, using the one-motif function in parallel
+    
+
     # Split predictors and responses
     val_df %>%
         dplyr::select(-cs_hit) %>%
@@ -291,6 +295,39 @@ prepModelData <- function(annotated.df, seed,
                 y_val = y_val))
 
 } # prepModelData
+#----------------------------------------------------------------------------------------------------
+#' Create a biased training set for one motif
+#'
+#' Create a biased training set for one motif by reducing the ratio of ChIPseq non-hits to hits to a
+#' given ratio. This should only be run on training data, as running it on testing or validation data
+#' is not good practice. 
+#'
+#' @param train.df The data frame of training data
+#' @param motif The motif of interest; this MUST be part of the dataset, else you'll get an error.
+#' @param negPosRatio The desired ratio of negatives to positives, must be expressed as an integer
+#' (default = 9)
+#'
+#' @return A reduced training set for the supplied motif, where the ratio of negatives to positives
+#' does not exceed that supplied to the function. It may fall short if there are motifs where there
+#' are insufficient negative points to fulfill the desired ratio, as it does not discard any
+#' positives
+
+createBiasOneMotif <- function(train.df, motif, negPosRatio = 9){
+
+    # Separate out the negatives from the positives
+    all.hits <- train.df %>% dplyr::filter(motifname == motif, cs_hit == 1)
+    all.non.hits <- train.df %>% dplyr::filter(motifname == motif, cs_hit == 0)
+
+    # Check to see how many rows and if ratio is already sufficient, return the df as is
+    if(nrow(all.non.hits) <= negPosRatio * nrow(all.hits)) return(train.df)
+
+    # Otherwise, use sampling to get the right number of negatives
+    sub.non.hits <- sampleTfDataset(all.non.hits, negPosRatio * nrow(all.hits))
+
+    # Combine and return them
+    return(dplyr::bind_rows(all.hits, sub.non.hits))
+    
+} # createBiasOneMotif
 #----------------------------------------------------------------------------------------------------
 #' Join the Seed 16 and Seed 20 Data
 #'

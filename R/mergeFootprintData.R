@@ -8,6 +8,7 @@
 #' using the \code{constructLymphoblastDataset.R} function
 #' @param seedNum A number (either 16 or 20) denoting which seed size to use for the merge
 #' @param host A string denoting the database host (default = "localhost")
+#' @param port A string denoting the database port (default = "5432")
 #' @param verbose A Boolean value that determines whether the function should print output during
 #' the merge (default = TRUE)
 #'
@@ -16,7 +17,7 @@
 #'
 #' @export
 
-mergeLymphoblastFootprints <- function(fimo.df, seedNum, host = "localhost", verbose = TRUE){
+mergeLymphoblastFootprints <- function(fimo.df, seedNum, host = "localhost", port = "5432", verbose = TRUE){
 
     # Create database name strings
     db.hint <- paste0("lymphoblast_hint_", seedNum)
@@ -27,12 +28,14 @@ mergeLymphoblastFootprints <- function(fimo.df, seedNum, host = "localhost", ver
                                     user="trena",
                                     password="trena",
                                     dbname = db.hint,
-                                    host = host)
+                                    host = host,
+                                    port = port)
     db_lymph_well <- DBI::dbConnect(drv = RPostgreSQL::PostgreSQL(),
                                     user="trena",
                                     password="trena",
                                     dbname = db.well,
-                                    host = host)
+                                    host = host,
+                                    port = port)
     hint_regions <- dplyr::tbl(db_lymph_hint, "regions")
     hint_hits    <- dplyr::tbl(db_lymph_hint, "hits")
     well_regions <- dplyr::tbl(db_lymph_well, "regions")
