@@ -192,7 +192,8 @@ prepModelData <- function(annotated.df, seed,
                           hintCutoff = -Inf,
                           wellCutoff = Inf,
                           motifsOnly = FALSE,
-                          biasTraining = FALSE){
+                          biasTraining = FALSE,
+                          biasRatio = 9){
 
     # Catch non-data frames
     stopifnot("data.frame" %in% class(annotated.df))
@@ -242,15 +243,32 @@ prepModelData <- function(annotated.df, seed,
         dplyr::select(-dplyr::one_of(cols_to_drop)) ->
         test_df
 
-    filtered.df %>%
-        dplyr::filter(!(chrom %in% c("1","2","3","4","5"))) %>%
-        dplyr::select(-dplyr::one_of(cols_to_drop)) ->
-        train_df
+    # Split for training, allowing for training bias
+    if(biasTraining){
+        filtered.df %>%
+            dplyr::filter(!(chrom %in% c("1","2","3","4","5"))) ->
+            train.init
 
-    remove(filtered.df)
+        # Bias all the motifs
+        train.list <- lapply(unique(train.init$motifname,
+                                    createBiasOneMotif,
+                                    train.df = train.init,
+                                    negPosRatio = biasRatio))
+        train.list %>%
+            dplyr::bind_rows() %>%
+            dplyr::select(-dplyr::one_of(cols_to_drop)) ->
+            train_df
+        # Remove the intermediate bits
+        rm(train.list); rm(train.init)
+        
+    } else {
+        filtered.df %>%
+            dplyr::filter(!(chrom %in% c("1","2","3","4","5"))) %>%
+            dplyr::select(-dplyr::one_of(cols_to_drop)) ->
+            train_df
+        }
 
-    # Bias the training set, if desired, using the one-motif function in parallel
-    
+    remove(filtered.df)    
 
     # Split predictors and responses
     val_df %>%
@@ -311,6 +329,8 @@ prepModelData <- function(annotated.df, seed,
 #' does not exceed that supplied to the function. It may fall short if there are motifs where there
 #' are insufficient negative points to fulfill the desired ratio, as it does not discard any
 #' positives
+#'
+#' @export
 
 createBiasOneMotif <- function(train.df, motif, negPosRatio = 9){
 
@@ -586,3 +606,96 @@ extractMaxMCC <- function(boostedStats, linearStats){
 
     return(mccs)
 }
+#----------------------------------------------------------------------------------------------------
+#' Create the "truth plot"
+#'
+#' Create a "truth" plot, which plots HINT v. Wellington scores given a model and a threshold
+#' to use for determining a "positive"
+#'
+#' @param model A model trained on the annotated dataset, either a linear or gradient-boosted model
+#' @param modelType Either "boosted" or "linear" to indicate the type of model provided
+#' @param seed One of "16", "20", or "both", denoting which seed is being used
+#' @param threshold A numeric from 0-1 indicating the cutoff for what constitutes a "positive"
+#' probability. This is an INCLUSIVE value; positives are greater than or equal to the threshold
+#' @param X_test The matrix of test data for predictors, generally created using "prepModelData"
+#' @param y_test The matrix of test data for response, generally created using "prepModelData"
+#' @param plotFile A location to use for creating the png plot file
+#'
+#' @return A plot of HINT vs Wellington scores, where both have been transformed via asinh() and
+#' the Wellington scores have been converted via absolute value. Points are coded by confusion
+#' matrix outcome. 
+#'
+#' @export
+
+createTruthPlot <- function(model, modelType, seed, threshold,
+                            X_test, y_test, plotFile){
+
+    # Combine the test data and make the predictions with the correct function
+    if(modelType == "boosted"){
+
+        pred.df <- make.pred.df.from.model(model, X_test, y_test)
+    } else {
+
+        glm.df.test <-  as.data.frame(cbind(y_test, X_test)) %>%
+            dplyr::rename("ChIPseq.bound" = "cs_hit")
+
+        pred.df <- make.pred.df.from.glm(model, glm.df.test)
+    }
+
+    # Use seed to determine columns to look for
+    if(seed == "both"){
+        hint.col <- "h_max_score_20"
+        well.col <- "w_min_score_20"
+    } else {
+        hint.col <- "h_max_score"
+        well.col <- "w_min_score"
+    }
+
+    # Fix the column name for the prediction dataframe
+    names(pred.df)[[1]] <- "ChIPseq.bound"
+
+    # Add the predictions to X footprint data to make a dataframe
+    truth.df <- dplyr::data_frame(abs_w_min_score = asinh(abs(X_test[,well.col])),
+                                  h_max_score = asinh(X_test[,hint.col]),
+                                  true_cs_hit = pred.df$ChIPseq.bound,
+                                  prediction = pred.df$Prediction)
+
+    # Add the predictions for the threshold
+    # If its greater than or equal to the threshold, make it positive
+    truth.df <- truth.df %>%
+        dplyr::mutate(pred_cs_hit = ifelse(prediction >= threshold, 1, 0))
+
+    # Create a labeling function
+    addLabel <- function(prediction, truth){
+
+        if(prediction){
+            if(truth){ label <- "TP"
+            } else { label <- "FP"}
+        } else {
+            if(truth){ label <- "FN"
+            } else { label <- "TN"}
+        }
+        return(label)
+    }
+
+    # Add label to df
+    truth.df <- truth.df %>%
+        dplyr::rowwise() %>%
+        dplyr::mutate( Label = addLabel(pred_cs_hit, true_cs_hit))
+
+    # Create a plot and save it to the file
+    truth.plot <- ggplot2::ggplot(truth.df) +
+        ggplot2::geom_point(ggplot2::aes(x = abs_w_min_score,
+                                         y = h_max_score,
+                                         color = Label)) +
+        ggplot2::theme_minimal(base_size = 15)
+    ggplot2::ggsave(filename = plotFile,
+                    plot = truth.plot)    
+} # createTruthPlot
+#----------------------------------------------------------------------------------------------------
+#' Create a threshold plot
+#'
+#' Create a "threshold" plot, which plots the 3 relevant prediction metrics against threshold to
+#' enable identification of the ideal "threshold" for ChIPseq hit probability.
+#'
+#' @param stats.df A dataframe of statistics generated by one of the model runs

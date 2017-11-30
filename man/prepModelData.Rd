@@ -4,14 +4,14 @@
 \alias{prepModelData}
 \title{Prepare Dataset for Modeling}
 \usage{
-prepModelData(annotated.df, seed, hintCutoff = 3.6, wellCutoff = -2.3,
-  motifsOnly = FALSE)
+prepModelData(annotated.df, seed, hintCutoff = -Inf, wellCutoff = Inf,
+  motifsOnly = FALSE, biasTraining = FALSE, biasRatio = 9)
 }
 \arguments{
 \item{annotated.df}{The fully annotated FIMO motif dataset. This must be a data frame, or else
 the function will stop and give an error.}
 
-\item{seed}{A character string that must be one of c("seed16","seed20","both"). This seed should
+\item{seed}{A character string that should be one of c("16","20","both"). This seed should
 match the data in the data frame}
 
 \item{hintCutoff}{A cutoff value used as a threshold on the HINT footprint score. Only scores

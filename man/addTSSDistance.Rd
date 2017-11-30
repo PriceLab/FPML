@@ -4,12 +4,14 @@
 \alias{addTSSDistance}
 \title{Add Transcription Start Site Distance}
 \usage{
-addTSSDistance(annotated.df, host = "localhost")
+addTSSDistance(annotated.df, host = "localhost", port = "5432")
 }
 \arguments{
 \item{annotated.df}{A dataframe containing FIMO motifs, ChIPSeq data, and footprints data}
 
 \item{host}{A string indicating the location of the hg38 database (default = "localhost")}
+
+\item{port}{A string indicating the port for the hg38 database (default = "5432")}
 }
 \value{
 The dataframe with an added column containing the asinh-transformed distance from each

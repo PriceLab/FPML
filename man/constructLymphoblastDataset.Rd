@@ -5,7 +5,8 @@
 \title{Construct the Lymphoblast Datast}
 \usage{
 constructLymphoblastDataset(distinctFlag = TRUE, sampleSize = NULL,
-  numWorkers = 62, isTest = FALSE)
+  numWorkers = 62, fimoHost = "localhost", fimoPort = "5432",
+  isTest = FALSE)
 }
 \arguments{
 \item{distinctFlag}{A Boolean flag indicating whether or not to take just the unique rows
@@ -18,6 +19,10 @@ argument is not specified or make to be NULL, the entire data frame will be retu
 \item{numWorkers}{The number of parallel processes that should be run; in general, this should
 either be set to the number of expected TFs or to a number restricted by the constraints of
 the system (default = 62)}
+
+\item{fimoHost}{A string indicating the location of the FIMO database (default = "localhost")}
+
+\item{fimoPort}{A string indicating the port where the FIMO database is located (default = "5432")}
 
 \item{isTest}{A Boolean flag indicating whether this script is being run as a test. If TRUE,
 it will only use 2 TFs instead of the full set to save on time (default = FALSE)}

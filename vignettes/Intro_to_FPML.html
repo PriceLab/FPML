@@ -306,7 +306,17 @@ prepped.data &lt;- prepModelData(annotated.df, &quot;both&quot;)</code></pre>
 <li>X_val : validation data for predictors</li>
 <li>y_val : validation data for response</li>
 </ul>
-<p>Right now we don’t really do anything with the validation data, though that is subject to change. More importantly, you don’t actually have to do anything with the members of the list themselves. This exactly list is all you’ll have to put in to the modeling functions to make them work. So don’t sweat it!</p>
+<p>Right now we don’t really do anything with the validation data, though that is subject to change. More importantly, you don’t actually have to do anything with the members of the list themselves if you want to make a model. This exactly list is all you’ll have to put in to the modeling functions to make them work. So don’t sweat it!</p>
+<div id="bias-the-training-data" class="section level3">
+<h3>Bias the Training Data</h3>
+<p>A new-ish addition to the <code>prepModelData()</code> is the option to bias your training data. You wouldn’t really want to bias any other set, as that would be an unfair way to test your model, but as Rory put it, “You can do whatever you want with your training set, so long as the model works”.</p>
+<p>With that in mind, we suspect that we could possibly get a benefit by biasing the training set to have a larger ratio of ChIPseq hits to non-hits (positives to negatives). Or, from the other angle, we might benefit from having a smaller negative-to-positive ratio. In the ordinary dataset, the ratio of negatives to positives is something on the order of 50-100. If you want to change this ratio by cutting out some negatives, you’ll want to manipulate the <code>biasTraining</code> and <code>biasRatio</code> parameters.</p>
+<p>For instance, if I want to make the ratio of negatives to positives equal to 10, I’d do the following:</p>
+<pre class="r"><code># Bias the data to a 10-1 neg-pos ratio
+prepped.data &lt;- prepModelData(annotated.df, &quot;both&quot;, 
+                              biasTraining = TRUE, biasRatio = 10)</code></pre>
+<p>This option utilizes a somewhat buried function that we won’t really discuss; all that function does is take a motif, a dataset, and a desired ratio, then return the biased dataset for that motif. We run it for all motifs in the <code>prepModelData</code> script to bias the full training set, but only if the <code>biasTraining</code> flag is set to TRUE (it’s FALSE by default).</p>
+</div>
 <div id="footprint-cutoffs" class="section level3">
 <h3>Footprint Cutoffs</h3>
 <p>Now if you’re paying attention to model prep, you may have noticed that we haven’t done any filtering based on footprint score. I haven’t forgotten about it, it’s just one of the defaults (or two actually). There are two cutoffs:</p>
@@ -338,6 +348,22 @@ prepped.data &lt;- prepModelData(annotated.df, &quot;both&quot;, motifsOnly = TR
 <div id="model-building" class="section level2">
 <h2>Model Building</h2>
 <p>At this point, you need to have gone through the data preparation steps; I can’t stress that enough, because these next steps won’t work without the correctly-prepped data. But if we assume that you’ve done that, then we can move along to actually building the models.</p>
+<p>As you’re likely aware, there are 2 basic model types we construct: gradient boosted and generalized linear (logistic) regression. You can run just one or you can run both; in each case, you’ll want to reserve some time for this because it’s the second most lengthy step (the most lengthy being the merging). Each type of modeling is run pretty much the same way and returns basically the same information. Essentially:</p>
+<ul>
+<li>Supply the model-building function with the list of matrices created using <code>prepModelData</code></li>
+<li>Collect the output: 1) The data frame of statistics created by the model; 2) The model itself</li>
+</ul>
+<p>That’s it, it’s very straightforward to run, though I’ll admit that there’s a fair amount going on under the hood. However, you shouldn’t really have to worry about that at all, it’s mostly just putting things in the correct format and labeling accordingly.</p>
+<p>Let’s run through each modeling approach in order, starting with the gradient boosted model. As stated above, it’s simply run by supplying the prepped data list, in this case by using the <code>buildBoostedModel()</code> function:</p>
+<pre class="r"><code>boosted.output &lt;- buildBoostedModel(prepped.data)</code></pre>
+<p>That’s literally it; you’ll get a 2-member list back, where each list member is named to make sure you know exactly what it is. One (BoostedModel) is the boosted model; you might want to use that later for prediction of for one of the model evaluation functions. The other (BoostedStats) is a stats data frame created using the model. It contains values that attempt to pinpoint the model efficacy; things like sensitivity and specificity of the model at different threshold values. While you can study this data frame directly, it’s generally best used by feeding it directly into one of the model evaluation functions.</p>
+<p>The linear models are run similarly; I say “models” and not “model” because it’ll construct one model using all predictors, plus one model for each individual predictor (excluding TF classes). Run it just like you run the boosted model:</p>
+<pre class="r"><code>linear.output &lt;- buildLinearModels(prepped.data)</code></pre>
+<p>Again, we just get a named list of 2 things in return, a model (LinearModel) and a stats data frame (LinearStats). In this case, we only return the full linear model including all predictors; we don’t return the other models. The stats data frame, however, includes stats for ALL the models constructed.</p>
+<p>That’s all for model building; the more interesting part comes when we attempt to evaluate the models we’ve built.</p>
+</div>
+<div id="model-evaluation" class="section level2">
+<h2>Model Evaluation</h2>
 </div>
 </div>
 

@@ -4,7 +4,8 @@
 \alias{createTfDf}
 \title{Pull all FIMO Motifs for a Given TF}
 \usage{
-createTfDf(TF, TFs.to.motifs, chipseq.regions, chipseq.hits, verbose = FALSE)
+createTfDf(TF, TFs.to.motifs, chipseq.regions, chipseq.hits,
+  fimoHost = "localhost", fimoPort = "5432", verbose = FALSE)
 }
 \arguments{
 \item{TF}{A transcription factor of interest}
@@ -15,6 +16,10 @@ is a transcription factor}
 \item{chipseq.regions}{A table of ChIPseq regions}
 
 \item{chipseq.hits}{A table of ChIPseq hits}
+
+\item{fimoHost}{A string indicating the host for the FIMO database (default = "localhost")}
+
+\item{fimoPort}{A string indicating the port for the FIMO database (default = "5432")}
 
 \item{verbose}{A Boolean flag indicating whether the function should print output (default = FALSE)}
 }

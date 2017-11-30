@@ -159,7 +159,7 @@ createTfDf <- function(TF, TFs.to.motifs,
                        chipseq.regions,
                        chipseq.hits,
                        fimoHost = "localhost",
-                       fimoPort = "5432"
+                       fimoPort = "5432",
                        verbose = FALSE){
 
     # Make the database connection
