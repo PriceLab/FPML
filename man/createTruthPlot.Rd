@@ -23,9 +23,14 @@ probability. This is an INCLUSIVE value; positives are greater than or equal to 
 \item{plotFile}{A location to use for creating the png plot file}
 }
 \value{
-A plot of HINT vs Wellington scores, where both have been transformed via asinh() and
-the Wellington scores have been converted via absolute value. Points are coded by confusion
-matrix outcome.
+The "truth data frame", containing the Wellington/HINT scores for each point in the
+test set, the predicted probability of a ChIPseq hit, the binary prediction based on that
+probability and the supplied threshold, the true ChIPseq hit value, and the corresponding
+label of TP/TN/FP/FN.
+
+It also constructs and saves a plot of HINT vs Wellington scores, where both have been
+transformed via asinh() and the Wellington scores have been converted via absolute value.
+Points are coded by confusion matrix outcome.
 }
 \description{
 Create a "truth" plot, which plots HINT v. Wellington scores given a model and a threshold

@@ -7,8 +7,8 @@
 #' @param dataList The list of prepared data, generally obtained by running the \code{prepModelData}
 #' function. It must contain at least these 4  matrices: X_train, y_train, X_test, y_test
 #'
-#' @return A stats dataframes, containing statistics for the both thefull linear model and for
-#' the individual linear models
+#' @return A named list containing two items: 1) a  stats dataframe with statistics for the both the
+#' full linear model and for the individual linear models; 2) the full linear model
 #'
 #' @export
 
@@ -75,7 +75,8 @@ buildLinearModels <- function(dataList){
 
     linear.stat.df <- dplyr::bind_rows(glm.stat.df, stats.regressors.df)
     
-    return(linear.stat.df)
+    return(list(LinearStats = linear.stat.df,
+                LinearModel = glm.all))
     
 } # buildLinearModels
 #----------------------------------------------------------------------------------------------------
@@ -621,9 +622,14 @@ extractMaxMCC <- function(boostedStats, linearStats){
 #' @param y_test The matrix of test data for response, generally created using "prepModelData"
 #' @param plotFile A location to use for creating the png plot file
 #'
-#' @return A plot of HINT vs Wellington scores, where both have been transformed via asinh() and
-#' the Wellington scores have been converted via absolute value. Points are coded by confusion
-#' matrix outcome. 
+#' @return The "truth data frame", containing the Wellington/HINT scores for each point in the
+#' test set, the predicted probability of a ChIPseq hit, the binary prediction based on that
+#' probability and the supplied threshold, the true ChIPseq hit value, and the corresponding
+#' label of TP/TN/FP/FN.
+#'
+#' It also constructs and saves a plot of HINT vs Wellington scores, where both have been
+#' transformed via asinh() and the Wellington scores have been converted via absolute value.
+#' Points are coded by confusion matrix outcome. 
 #'
 #' @export
 
@@ -690,7 +696,10 @@ createTruthPlot <- function(model, modelType, seed, threshold,
                                          color = Label)) +
         ggplot2::theme_minimal(base_size = 15)
     ggplot2::ggsave(filename = plotFile,
-                    plot = truth.plot)    
+                    plot = truth.plot)
+
+    return(truth.df)
+    
 } # createTruthPlot
 #----------------------------------------------------------------------------------------------------
 #' Create a threshold plot

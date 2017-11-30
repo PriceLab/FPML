@@ -11,8 +11,8 @@ buildLinearModels(dataList)
 function. It must contain at least these 4  matrices: X_train, y_train, X_test, y_test}
 }
 \value{
-A stats dataframes, containing statistics for the both thefull linear model and for
-the individual linear models
+A named list containing two items: 1) a  stats dataframe with statistics for the both the
+full linear model and for the individual linear models; 2) the full linear model
 }
 \description{
 Build a linear model with all features and linear models with each individual feature for the
