@@ -5,7 +5,7 @@
 \title{Merge Footprints for Lymphoblast Data}
 \usage{
 mergeLymphoblastFootprints(fimo.df, seedNum, host = "localhost",
-  verbose = TRUE)
+  port = "5432", verbose = TRUE)
 }
 \arguments{
 \item{fimo.df}{A data frame containing FIMO motifs and ChIPSeq data, generally constructed
@@ -14,6 +14,8 @@ using the \code{constructLymphoblastDataset.R} function}
 \item{seedNum}{A number (either 16 or 20) denoting which seed size to use for the merge}
 
 \item{host}{A string denoting the database host (default = "localhost")}
+
+\item{port}{A string denoting the database port (default = "5432")}
 
 \item{verbose}{A Boolean value that determines whether the function should print output during
 the merge (default = TRUE)}

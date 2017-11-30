@@ -4,7 +4,7 @@
 \alias{createMotifClassMap}
 \title{Create Motif Class Map}
 \usage{
-createMotifClassMap(fp.df)
+createMotifClassMap(fp.df, TFs.to.motifs)
 }
 \arguments{
 \item{fp.df}{The data frame of FIMO motifs and footprints. It is used for filtering out only those

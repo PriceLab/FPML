@@ -4,10 +4,13 @@
 \alias{annotateFootprintData}
 \title{Annotate the Footprint Data}
 \usage{
-annotateFootprintData(fp.df)
+annotateFootprintData(fp.df, chipseq.hits, host = "localhost",
+  port = "5432")
 }
 \arguments{
 \item{fp.df}{The data frame of FIMO motifs and footprints}
+
+\item{chipseq.hits}{The dataframe of ChIPseq hits corresponding to the dataset}
 }
 \value{
 The supplied data frame with added columns for the one-hot coded TF class data, GC
