@@ -158,6 +158,10 @@ all.TFs &lt;- constructLymphoblastDataset(distinctFlag = FALSE)</code></pre>
 <pre class="r"><code># Run it such that it returns 10 million random rows
 all.TFs &lt;- constructLymphoblastDataset(sampleSize = 1e7)</code></pre>
 <p>This command DOES use only distinct rows because that’s the default, but after finding distinct rows, it takes a 10 million row sample size, something like 2-3% of the full dataset. This is actually the command I would use if I were replicating exactly what we did for the paper.</p>
+<p>There’s a couple other parameters you can also specify, if your FIMO database is not on your local machine, or if it’s on a different port than the default (port = 5432). For instance, if my FIMO database were on Khaleesi and port 5433 (it’s currently on the default port 5432), I’d do this:</p>
+<pre class="r"><code># Grab data from Khaleesi port 5433
+tf.data &lt;- constructLymphoblastDataset(fimoHost = &quot;khaleesi&quot;, fimoPort = &quot;5433&quot;)</code></pre>
+<p>That’ll grab the dataset from Khaleesi, so you don’t actually have to have the database locally.</p>
 <p>There’s one more parameter you might actually want to manipulate, and that’s the <code>numWorkers</code> parameter. As the name suggests, it determines how many processes to run for putting together the dataset. The function uses the <code>BiocParallel</code> package (for goodness sake, DO NOT run it on Windows, it’ll take forever) and by default, it assigns 62 workers. Why 62? Because that’s how many TFs we have to look for. If you’re working with fewer cores or would just like to rachet that down, go ahead and change the parameter:</p>
 <pre class="r"><code># Run with half as many workers
 all.TFs &lt;- constructLymphoblastDataset(numWorkers = 31)</code></pre>
@@ -175,7 +179,12 @@ all.TFs &lt;- constructLymphoblastDataset(numWorkers = 31)</code></pre>
 <pre class="r"><code># Grab data for one TF
 tf.data &lt;- createTfDf(TF, TFs.to.motifs, chipseq.regions, chipseq.hits)</code></pre>
 <p>Depending on how many motifs map to your TF, this could take tens of minutes or more like an hour or two. It’s worth noting that this is the exact function used by the <code>createLymphoblastDataset()</code> function in parallel; that function merely creates all the proper arguments and then calls this function in parallel. Thus, if you want to know more about how to get the proper arguments, that function is a great place to refer to.</p>
-<p>On the same subject, it’s worth quickly going over how to create your TF-to-motif mapping. Rather than include another database dependency, I’ve just stored our universal TF-motif mapping (<code>2017_08_23_Motif_TF_Map.RDS</code>) in the <code>extdata</code> folder of this package. Then, to create a list of the proper format for fishing out motifs from FIMO, all you need to do is feed in your <code>chipseq.hits</code> data frame as follows:</p>
+<p>As with the lymphoblast code, you can specify more parameters if your FIMO database is not on your local machine, or if it’s on a different port than the default. Like before, here’s how I’d run things if my FIMO database were on Khaleesi and port 5433:</p>
+<pre class="r"><code># Grab data for one TF from Khaleesi port 5433
+tf.data &lt;- createTfDf(TF, TFs.to.motifs, chipseq.regions, chipseq.hits,
+                      fimoHost = &quot;khaleesi&quot;, fimoPort = &quot;5433&quot;)</code></pre>
+<p>So that’s how you’d do things for 1 chromosome, regardless of where your FIMO database is. The wrapper function for lymphoblast uses this code, and as I’ve already shown, you can change the parameters there as well.</p>
+<p>On a similar subject, it’s worth quickly going over how to create your TF-to-motif mapping. Rather than include another database dependency, I’ve just stored our universal TF-motif mapping (<code>2017_08_23_Motif_TF_Map.RDS</code>) in the <code>extdata</code> folder of this package. Then, to create a list of the proper format for fishing out motifs from FIMO, all you need to do is feed in your <code>chipseq.hits</code> data frame as follows:</p>
 <pre class="r"><code># Create the TF-motif mapping in list form
 TFs.to.motifs &lt;- mapTFsToMotifs(chipseq.hits)</code></pre>
 <p>That will give you the list you need. A final function I’ve created is the one that takes the proper sample size. It’s very simple, but I found that it was easier to remember the one function call than it was to call a couple commands in sequence. So, if you’ve made your dataset and you’d like to take a smaller sample size of it, simply call it as follows:</p>
@@ -200,7 +209,10 @@ merged.df &lt;- mergeLymphoblastFootprints(fimo.df, 20)</code></pre>
 <p>Now there is one more option you should know about, which is the <code>host</code> option. By default it’s set to <code>localhost</code>, assuming that the databases are local to where you’re running the function. But if not, you could specify their location:</p>
 <pre class="r"><code># Merge in footprints for seed 16, using databases on Khaleesi
 merged.df &lt;- mergeLymphoblastFootprints(fimo.df, 16, host = &quot;khaleesi&quot;)</code></pre>
-<p>At the moment, we only look at the default port (<code>port = 5432</code>) for databases; if this becomes a problem, we can always add the <code>port</code> option to the scripts as well; it may be that by the time you read this vignette, I’ve already done so. But for now, we’ll just assume the port is the default.</p>
+<p>As before, this also assumes we only look at the default port (<code>port = 5432</code>) for databases; if this becomes a problem, we can always change the <code>port</code> option as well:</p>
+<pre class="r"><code># Merge in footprints for seed 20, using databases that are local but on port 5433
+merged.df &lt;- mergeLymphoblastFootprints(fimo.df, 20, port = &quot;5433&quot;)</code></pre>
+<p>In the case of the footprint databases, this <code>port</code> option becomes pretty important; there’s a whole collection of databases on the other port (5433), so you may have to change this parameter around when you mess with other tissues.</p>
 <div id="merging-for-one-chromosome" class="section level2">
 <h2>Merging for one Chromosome</h2>
 <p>As before, the lymphoblast-specific function simply uses a more basic function and does so in a parallel fashion. In this case, the basic function takes a chromosome, the fimo dataframe, and the relevant database tables for HINT/Wellington and for regions/hits. It will go through all of the relevant footprint tables and add footprint data from them to the fimo data frame we fed in.</p>
@@ -211,7 +223,7 @@ merged.Y &lt;- mergeFootprintsOneChrom(&quot;Y&quot;, fimo.df,
                                     hint_hits_tbl,
                                     well_regions_tbl, 
                                     well_hits_tbl)</code></pre>
-<p>Here, I’m assuming you’ve got connections to the HINT/Wellington tables that are open and ready to go. If you’re not sure how to create those connections, the <code>mergeLymphoblastFootprints()</code> gives a great example of it. It essentially amounts to 1) Creating the proper database connection, and 2) Pointing to the correct tables.</p>
+<p>Here, I’m assuming you’ve got connections to the HINT/Wellington tables that are open and ready to go. If you’re not sure how to create those connections, the <code>mergeLymphoblastFootprints()</code> gives a great example of it. It essentially amounts to 1) Creating the proper database connection, and 2) Pointing to the correct tables. Because pointing to the databases is required BEFORE running this function, you don’t have to worry about supplying it with a host or a port.</p>
 <p>So, to once again sum up the section:</p>
 <ul>
 <li>If you’re using lymphoblast, just use the <code>mergeLymphoblastFootprints()</code> function and specify the seed you want</li>
@@ -222,7 +234,111 @@ merged.Y &lt;- mergeFootprintsOneChrom(&quot;Y&quot;, fimo.df,
 </div>
 <div id="annotating-the-dataset-annotatedataset.r" class="section level1">
 <h1>Annotating the Dataset (<code>annotateDataset.R</code>)</h1>
-<p>The third step is the same regardless of dataset, so there’s no need to talk about a separate lymphoblast function.</p>
+<p>The third step is the same regardless of dataset, so there’s no need to talk about a separate lymphoblast function. Here’s the part where we add TF class, TSS distance, and GC content to the data. The only special thing you’ll need here is the ChIPseq data you started with, as it is used for adding TF class data to the correct TFs. You’ll also need access to the hg38 database, but we’ll assume you have that too.</p>
+<p>As before, we’ll start with the highest level script, which should annotate any tissue dataset you give it, as long as you also supply the correct ChIPseq hits. We’ll assume that your dataset is now merged and called <code>merged.df</code>:</p>
+<pre class="r"><code># Add TF class, GC content, and asinh(TSS distance) to dataset
+annotated.df &lt;- annotateFootprintData(merged.df, chipseq.hits)</code></pre>
+<p>That command will take a little while, but not nearly as long as merging the footprint data took. If the merging step took a day, this step should take more like an hour in my experience. And that’s assuming your hg38 database is local; if if’s not, then you can specify the host and port for it:</p>
+<pre class="r"><code># Add all the annotation info from port 5433 on Khaleesi
+annotated.df &lt;- annotateFootprintData(merged.df, chipseq.hits, host = &quot;khaleesi&quot;, port = &quot;5433&quot;)</code></pre>
+<p>Now this step clearly wraps a few different steps into one. We’ll go over each step individually.</p>
+<div id="individual-annotation-steps" class="section level2">
+<h2>Individual Annotation Steps</h2>
+<p>First, we code up the correct TF class data and adds this to the data frame. For creating this data, which is in the one-hot format, we use the <code>createMotifClassMap()</code> function and we require the ChIPseq data. This function requires a TF-motif map in the form of a list; we saw how to create said list back in the <code>constructMotifDataset.R</code> portion, so we’ll do those 2 steps back to back here:</p>
+<pre class="r"><code># Create the one-hot format of TF class data
+TFs.to.motifs &lt;- mapTFsToMotifs(chipseq.hits)
+motif_class_hot &lt;- createMotifClassMap(merged.df, TFs.to.motifs)</code></pre>
+<p>This one-hot format is separate from the merged dataframe, so you’ll have to actually join it to the dataframe to put them together. If you’re lost on how to do that, the <code>annotateFootprintData()</code> function has an example of how to do it.</p>
+<p>The second piece of annotation data we add is the GC content; the function I’ve written to do this is actually the exact function that Rory wrote, though I think I may have slimmed it down a bit. Like the previous function, it doesn’t actually add itself to the dataset. Rather, it’s made to take in one “start”, one “end”, one “chromosome”, and a shoulder size, then return GC content for that section of DNA.</p>
+<p>In order to use this function (<code>getGCContent()</code>) correctly, I recommend adding it directly to the dataframe via a <code>dplyr::mutate()</code> call. This would look something like:</p>
+<pre class="r"><code># Add the GC content column to the merged dataframe
+gc.added &lt;- merged.df %&gt;% dplyr::mutate(&quot;gc_content&quot; = getGCContent(start, endpos, chrom))</code></pre>
+<p>You’ll notice that I didn’t supply a shoulder size; here, the default is set to 100. If you wanted to increase it, say to 500, you’d just add it as the following:</p>
+<pre class="r"><code># Add GC content for 500 bp shoulder size
+gc.added &lt;- merged.df %&gt;% dplyr::mutate(&quot;gc_content&quot; = getGCContent(start, endpos, chrom, shoulder = 500))</code></pre>
+<p>So now we’ve added TF class and GC content; the final piece is to add TSS distance. Unlike the previous 2 functions, the function I’ve written here will add the data directly to the data frame. It requires the <code>hg38</code> database, so you’ll need to point to it. By default, it’s assumed to be on the local machine on port 5432, so the following should do the trick most of the time:</p>
+<pre class="r"><code># Add TSS distance to the dataframe
+tss.added &lt;- addTSSDistance(merged.df)</code></pre>
+<p>Of course, if the database were elsewhere, say on port 5433 of Khaleesi, then you’d do the following:</p>
+<pre class="r"><code># Add TSS distance from port 5433 on Khaleesi
+tss.added &lt;- addTSSDistance(merged.df, host = &quot;khaleesi&quot;, port = &quot;5433&quot;)</code></pre>
+<p>And that’s about it for annotation. So, to summarize:</p>
+<ul>
+<li>Generally, just use <code>annotateFootprintData()</code> to annotate your data</li>
+<li>If you decide to use the functions individually, remember that two (<code>createMotifClassMap()</code> and <code>getGCContent()</code>) merely create the data and the other (<code>addTSSDistance()</code>) creates it and adds it to the dataset</li>
+</ul>
+</div>
+</div>
+<div id="building-models-buildmodels.r" class="section level1">
+<h1>Building Models (<code>buildModels.R</code>)</h1>
+<p>Here’s the fun (and most complex) section of the pipeline. Up to this point, you’ve been able to basically just run one command in order to recreate the lymphoblast dataset. Now, however, there are going to be multiple steps no matter what you do. There’s actually 9 different functions and I’m going to talk about them in 3 groups:</p>
+<ol style="list-style-type: decimal">
+<li>Data preparation (2 functions)</li>
+<li>Model building (2 functions)</li>
+<li>Model evaluation (5 functions)</li>
+</ol>
+<p>As you’d likely expect, you have to go through these steps in order, else they won’t work too well. Let’s jump right in and start with data preparation.</p>
+<div id="data-preparation" class="section level2">
+<h2>Data Preparation</h2>
+<p>Coming into this step, you should have a fully-annotated data frame; that is, it has all the following information:</p>
+<ul>
+<li>FIMO data, including motifscore</li>
+<li>Footprint data for either seed 16 or seed 20</li>
+<li>One-hot coded data on TF class</li>
+<li>GC content</li>
+<li>TSS distance (asinh-transformed)</li>
+</ul>
+<p>If you don’t have all that information in your dataframe, you should identify the step you missed in the earlier sections of the vignette. But if you just ran the 3 big commands I recommended, you should have exactly this.</p>
+<p>Now if you’re thinking big, your first question should be something like “What about if I want to use information from both seeds?” Obviously, this will necessitate that you have 2 data frames rather than 1; each data frame needs to be complete in its own right. But assuming this is indeed the case, we can jump right into the first preparation function: <code>joinModelData()</code>.</p>
+<p>As its name implies, this function will take in the dataframes for the 2 different seeds and join them together such that you have double columns for all footprint scores and fractions. Running it is very simple:</p>
+<pre class="r"><code>joined.df &lt;- joinModelData(full.16, full.20)</code></pre>
+<p>That’s it; clearly, the seed 16 data should come first, followed by the seed 20 data. You could theoretically switch their positions, but that would just end up mis-labeling the data; so don’t do that. The command should take a few minutes (more than a few if your datasets are large), but once they’re done you’ll have a joined dataframe with data from both seeds.</p>
+<p>Regardless of whether or not you join your data, you’ll need to next feed your data into the <code>prepModelData()</code> function. This function will take in the data frame itself and break it into training, testing, and validation data. These data are then returned as a 6 membered list of matrices, covering the 3 different data groups and the 2 different data types (“X” data for all the predictors and “Y” data for the response).</p>
+<p>Confused? Don’t be; it’s pretty easy to run it and get the results. All you really need are your data frame of data (<code>annotated.df</code> here) and a seed ID (“16”, “20”, or “both”), and the default options will carry you through</p>
+<pre class="r"><code># Prep model data for both seeds
+prepped.data &lt;- prepModelData(annotated.df, &quot;both&quot;)</code></pre>
+<p>The thing returned to you should be a named list of length = 6. Specifically, those members are:</p>
+<ul>
+<li>X_train : training data for predictors</li>
+<li>y_train : training data for response</li>
+<li>X_test : testing data for predictors</li>
+<li>y_test : testing data for reponse</li>
+<li>X_val : validation data for predictors</li>
+<li>y_val : validation data for response</li>
+</ul>
+<p>Right now we don’t really do anything with the validation data, though that is subject to change. More importantly, you don’t actually have to do anything with the members of the list themselves. This exactly list is all you’ll have to put in to the modeling functions to make them work. So don’t sweat it!</p>
+<div id="footprint-cutoffs" class="section level3">
+<h3>Footprint Cutoffs</h3>
+<p>Now if you’re paying attention to model prep, you may have noticed that we haven’t done any filtering based on footprint score. I haven’t forgotten about it, it’s just one of the defaults (or two actually). There are two cutoffs:</p>
+<ol style="list-style-type: decimal">
+<li>hintCutoff : exclusive cutoff for HINT (default = -Inf)</li>
+<li>wellCutoff : exclusive cutoff for Wellington (default = Inf)</li>
+</ol>
+<p>I’ve set the defaults to either -Inf or Inf to prevent any filtering from happening, at least by default. All HINT scores should be positive and all Wellington scores should be negative, so this works well enough. If you were to change both defaults to 0, you’d be screening out all motifs that don’t have a non-zero footprinting score. So you’d do something like this:</p>
+<pre class="r"><code># Prep data, but screen out rows w/o non-zero footprint scores
+prepped.data &lt;- prepModelData(annotated.df, &quot;both&quot;, hintCutoff = 0, wellCutoff = 0)</code></pre>
+<p>You can play around with cutoffs and I have; just remember that they’re exclusive, so your cutoff won’t actually appear in the dataset. And also remember that the relationship between the cutoffs is an OR relationship; that is to say that if you’ve got a HINT score of 0 but a Wellington score of -1, you’d still appear in the dataset I just created. Hopefully that all makes sense.</p>
+</div>
+<div id="motif-only-data" class="section level3">
+<h3>Motif-Only Data</h3>
+<p>Another thing I included was the ability to disinclude the footprint columns, such that we’re doing a “motifs-only” sort of analysis. This serves as something of a baseline where we can measure how much we’re adding with the footprints. I included it here, not earlier in the package, because having it here allows you to apply cutoffs and directly compare to the same dataset WITH footprints.</p>
+<p>If you want to run without the footprint-related columns, then just switch the related flag to TRUE (it’s FALSE by default):</p>
+<pre class="r"><code># Prep all the data, but do it only for motifs, without footprints
+prepped.data &lt;- prepModelData(annotated.df, &quot;both&quot;, motifsOnly = TRUE)</code></pre>
+<p>You’ll notice that I did all of these steps for the “both” seed option; I think you’ll be fine changing that to “16” or “20” without my assistance.</p>
+<p>So let’s review data preparation before we move to actual model building:</p>
+<ul>
+<li>If you’re using joined data, feed both seed 16 and seed 20 data into <code>joinModelData()</code> function as a first step</li>
+<li>Regardless of seed, pass your dataframe into <code>prepModelData</code> to get it in the right format</li>
+<li>You can use different cutoffs and the <code>motifsOnly</code> flag to modify how the data are prepared</li>
+<li>Make sure that you have gone through all the annotation steps before you do any of this stuff!</li>
+</ul>
+</div>
+</div>
+<div id="model-building" class="section level2">
+<h2>Model Building</h2>
+<p>At this point, you need to have gone through the data preparation steps; I can’t stress that enough, because these next steps won’t work without the correctly-prepped data. But if we assume that you’ve done that, then we can move along to actually building the models.</p>
+</div>
 </div>
 
 

@@ -248,11 +248,11 @@ And that's about it for annotation. So, to summarize:
 
 # Building Models (`buildModels.R`)
 
-Here's the fun (and most complex) section of the pipeline. Up to this point, you've been able to basically just run one command in order to recreate the lymphoblast dataset. Now, however, there are going to be multiple steps no matter what you do. There's actually 7 different functions and I'm going to talk about them in 3 groups:
+Here's the fun (and most complex) section of the pipeline. Up to this point, you've been able to basically just run one command in order to recreate the lymphoblast dataset. Now, however, there are going to be multiple steps no matter what you do. There's actually 9 different functions and I'm going to talk about them in 3 groups:
 
 1. Data preparation (2 functions)
 2. Model building (2 functions)
-3. Model evaluation (3 functions)
+3. Model evaluation (5 functions)
 
 As you'd likely expect, you have to go through these steps in order, else they won't work too well. Let's jump right in and start with data preparation.
 
