@@ -364,7 +364,138 @@ prepped.data &lt;- prepModelData(annotated.df, &quot;both&quot;, motifsOnly = TR
 </div>
 <div id="model-evaluation" class="section level2">
 <h2>Model Evaluation</h2>
+<p>The vast majority of model evaluation takes place graphically, which is the easiest way to understand the fairly large array of numbers we get back in our statistics data frames. Thus, most of the functions described below will be graphical in nature and have examples you can find in the <code>extdata</code> section of the package (they’re all .png files). However, let’s start with the one non-graphical method.</p>
+<p>If we want to look at one number to understand model performance for predicting ChIPseq hits, I’d argue the best number to look at would be the Matthews correlation coefficient (MCC). The maximum MCC value for a model in the statistics data frame tells you the very best performance you get for that model, thus I’ve written a function called <code>extractMaxMCC()</code> that does this for all the models.</p>
+<p>Simply provide the resulting stats dataframes (boosted and linear) to the function like this:</p>
+<pre class="r"><code># Get the maximum MCC for each model
+max.MCCs &lt;- extractMaxMCC(boosted.output$BoostedStats, linear.output$LinearStats)</code></pre>
+<p>The output will be a table (a named vector) where every model in the statistics data frames is represented by its max MCC. In this way, you’ll be able to quickly see which model has the highest max MCC and if you want to pull one out, all you need to do is call it by name. For instance, if I want the max MCC for the gradient boosted model, I’d do:</p>
+<pre class="r"><code># Extract the max MCC for the boosted model
+max.boosted &lt;- maxMCCs[&quot;gradient boosted model&quot;]</code></pre>
+<p>The different labels you can call correspond to the unique model names contained in the stats data frames. Now then, let’s get on to graphical evaluation methods.</p>
+<div id="graphical-evaluation" class="section level3">
+<h3>Graphical Evaluation</h3>
+<p>By now, you’re probably pretty familiar with the 3 plots we use to assess performance of different models. There’s a bunch of annoying data munging and whatnot that goes into making those plots, but you shouldn’t have to worry about that. Rather, you’ll just need to supply your statistics data frames, your <code>dataType</code> (“seed16”, “seed20”, “both”, or “motifsOnly”), and a 3-member vector specifying where to save your plot files. These will be .png files, so name them accordingly. For instance, here’s how I’d save the 3 plots to whatever local directory I’m in:</p>
+<pre class="r"><code># Create the 3 statistical plots locally
+plotStatCurves(boosted.output$BoostedStats, linear.output$LinearStats, &quot;both&quot;,
+               filePaths = c(&quot;./MCC_curve.png&quot;,
+                             &quot;./ROC_curve.png&quot;,
+                             &quot;./PrecRec_curve.png&quot;))</code></pre>
+<p>Using the supplied <code>dataType</code>, the function will arrange all the curves in the correct order and take care of colors. Those 3 curves should form the basis of how you compare different models to one another. Now you might decide that you’d like to hone in on a particular model and examine it. At the current writing, there are 2 functions for doing so (a 3rd is on the way); one is specific to the boosted model and the other is for any model.</p>
+<p>First, let’s talk about constructing the importance matrix, which is just for a boosted model. The importance matrix gives you some insight into the boosted model you supply, giving you information on the “gain” for each feature. Roughly speaking the gain is a weighted measure of how much that feature pops up in the ensemble of trees used by the boosted method, so the top feature could be argued to be the most important. While I would caution against reading too far into this, it’s a useful way of better understanding the boosted model. But be careful; boosted models are by definition non-linear, so this isn’t like you’re reading off linear coefficients that you can directly compare to one another.</p>
+<p>That said, you can construct your importance matrix and save it to a .png file using the <code>plotImportanceMatrix()</code> function:</p>
+<pre class="r"><code># Plot the importance matrix locally
+plotImportanceMatrix(boosted.output$BoostedModel, 
+                     prepped.data$X_train, 
+                     filePath = &quot;./Importance_matrix.png&quot;)</code></pre>
+<p>As shown, you’ll need the model itself plus the predictor training data. I just pulled it from the prepped model data list here, so you should be able to do the same.</p>
+<p>Now let’s talk about a more general evaluation function that can be applied to either linear or boosted models. The idea behind this approach is that once we’ve selected a model and a threshold that constitutes a predicted “positive”, we want to know what that looks like on our test data. Rather than just looking at one MCC value (e.g. MCC = 0.45), we’d often like to see the 4 confusion matrix outcomes of the datal; that is, TP/TN/FP/FN for each point. For this purpose, I created a function called <code>createTruthPlot()</code> that will do that for you. It takes a few parameters, but you should basically have all of them.</p>
+<p>Simply choose the threshold that give you your desired MCC (or fulfills some other criteria) and run it for your model of choice. Here, I’ll do it for the full linear model, just to change things up, and I’ll use a threshold of 0.125, which looks good on the MCC plot (<code>extdata/testMCC.png</code>):</p>
+<pre class="r"><code># Create the &quot;Truth&quot; plot locally and return the data frame
+truth.df &lt;- createTruthPlot(linear.output$LinearModel,
+                            modelType = &quot;linear&quot;, 
+                            seed = &quot;both&quot;, 
+                            threshold = 0.125,
+                            X_test = prepped.data$X_test,
+                            y_test = prepped.data$y_test,
+                            plotFile = &quot;./truthPlot.png&quot;)</code></pre>
+<p>In addition to our lovely plot, we also get a data frame in return. This data frame contains all the information used to create the plot, which includes:</p>
+<ul>
+<li>HINT and Wellington scores for each point. The Wellington scores have been made positive via <code>abs()</code> and both have been transformed via <code>asinh()</code> to scale them down to a reasonable level. In the case of using both seed 16 and seed 20, we use seed 20 scores here</li>
+<li>Predicted probability for each test point</li>
+<li>Actual ChIPseq hit identity for each test point (0/1)</li>
+<li>Predicted ChIPseq hit identity for each test point (0/1), based on the supplied threshold</li>
+<li>A confusion matrix label (TP/TN/FP/FN) for each point</li>
+</ul>
+<p>The data frame can be used to immediately evaluate the distribution of each confusion matrix outcome using the <code>table()</code> command:</p>
+<pre class="r"><code>table(truth.df$Label)</code></pre>
+<p>You’ll generally see the group being dominated by TN values, as most points are not ChIPseq hits and any decent model will generally identify them correctly.</p>
+<p>Let’s finish this section by summing up EVERYTHING we’ve done here:</p>
+<ul>
+<li>Use your annotated data to build models; if you haven’t gone through that step and the ones previous to it, do that first!</li>
+<li>For using both seeds, start with <code>joinModelData()</code>, then continue through</li>
+<li>Always prep your data using <code>prepModelData()</code>, where you can choose whether or not to bias your training set</li>
+<li>Build boosted and linear models using <code>buildBoostedModel()</code> and <code>buildLinearModels()</code></li>
+<li>Compare your models’ performance numerically with <code>extractMaxMCC()</code> and graphically with <code>plotStatCurves()</code></li>
+<li>Evaluate any individual model’s performance with <code>createTruthPlot()</code></li>
+<li>Check out the features of the boosted model with <code>plotImportanceMatrix()</code>.</li>
+</ul>
 </div>
+</div>
+</div>
+<div id="finale-putting-it-all-together" class="section level1">
+<h1>Finale: Putting it all together</h1>
+<p>Up to this point, I’ve been talking about individual functions. Now I want to give you an example of exactly how I’d run all the steps together to reproduce what we’ve done for the footprinting paper. Specifically, here’s the steps I’ll do:</p>
+<ol style="list-style-type: decimal">
+<li>Construct the dataset using 10 million distinct motifs</li>
+<li>Merge with both seed 16 and seed 20 footprint data to create 2 data sets that I can merge later</li>
+<li>Run each data set through annotation to add TF class, GC content, and TSS distance</li>
+<li>Join together the data and prep the for model building</li>
+<li>Build both linear and boosted models for the data</li>
+<li>Construct statistical curves to evaluate model performance in comparison with one another</li>
+<li>Examine the boosted model to look at its most important features</li>
+<li>Using the boosted model, create a truth plot and pull out the confusion matrix values</li>
+</ol>
+<p>I’ll reference these steps as I go along, but from here it’s just going to be one big block of code:</p>
+<pre class="r"><code>## Important Note: I'm assuming all the databases are local and on port 5432, the default port ##
+
+# 1. Construct the dataset using 10 million distinct motifs
+all.TFs &lt;- constructLymphoblastDataset(sampleSize = 1e7)
+
+# 2. Merge with both seed 16 and seed 20 footprint data to create 2 data sets that I can merge later
+seed.16 &lt;- mergeLymphoblastFootprints(all.TFs, seedNum = 16) # This will take quite a while
+seed.20 &lt;- mergeLymphoblastFootprints(all.TFs, seedNum = 20) # This will take quite a while
+
+####DETOUR####
+# Important step: Grab the ChIPseq hits for lymphoblast locally
+
+# Establish the connection to the database
+db.chipseq &lt;- DBI::dbConnect(drv=RPostgreSQL::PostgreSQL(),
+                             user = &quot;trena&quot;,
+                             password = &quot;trena&quot;,
+                             dbname = &quot;chipseq&quot;,
+                             host= &quot;localhost&quot;)                           
+
+# Run the query and then turn it into a tibble (enhanced dataframe)
+chipseq.hits &lt;- DBI::dbGetQuery(db.chipseq, &quot;select * from hits&quot;)
+chipseq.hits &lt;- tibble::as_tibble(chipseq.hits)
+
+####END DETOUR####
+
+# 3. Run each data set through annotation to add TF class, GC content, and TSS distance
+annotated.16 &lt;- annotateFootprintData(seed.16, chipseq.hits)
+annotated.20 &lt;- annotateFootprintData(seed.20, chipseq.hits)
+
+# 4. Join together the data and prep the for model building (without bias, without filtering)
+joined.df &lt;- joinModelData(annotated.16, annotated.20)
+prepped.data &lt;- prepModelData(joined.df, seed = &quot;both&quot;)
+
+# 5. Build both linear and boosted models for the data
+boosted.output &lt;- buildBoostedModel(prepped.data)
+linear.output &lt;- buildLinearModels(prepped.data)
+
+# 6. Construct statistical curves to evaluate model performance in comparison with one another (locally)
+plotStatCurves(boosted.output$BoostedStats, linear.output$LinearStats, &quot;both&quot;,
+               filePaths = c(&quot;./MCC_curve.png&quot;,
+                             &quot;./ROC_curve.png&quot;,
+                             &quot;./PrecRec_curve.png&quot;))
+
+# 7. Examine the boosted model to look at its most important features (locally)
+plotImportanceMatrix(boosted.output$BoostedModel, 
+                     prepped.data$X_train, 
+                     filePath = &quot;./Importance_matrix.png&quot;)
+
+# 8. Using the boosted model, create a truth plot (locally) and pull out the confusion matrix values
+truth.df &lt;- createTruthPlot(linear.output$BoostedModel,
+                            modelType = &quot;boosted&quot;, 
+                            seed = &quot;both&quot;, 
+                            threshold = 0.3,
+                            X_test = prepped.data$X_test,
+                            y_test = prepped.data$y_test,
+                            plotFile = &quot;./truthPlot.png&quot;)
+table(truth.df$Label)</code></pre>
+<p>And that’s it! The above workflow DID introduce another concept: how to get the ChIPseq hits directly from their database. But I’m confident you can handle that. Feel free to copy this entire workflow and change around parameters as you see fit. And let me know if you run into any questions!</p>
+<p><em>Matt Richards</em></p>
 </div>
 
 
