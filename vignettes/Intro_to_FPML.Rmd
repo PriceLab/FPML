@@ -102,7 +102,7 @@ tf.data <- createTfDf(TF, TFs.to.motifs, chipseq.regions, chipseq.hits,
                       fimoHost = "khaleesi", fimoPort = "5433")
 ```
 
-So that's how you'd do things for 1 chromosome, regardless of where your FIMO database is. The wrapper function for lymphoblast uses this code, and as I've already shown, you can change the parameters there as well. 
+So that's how you'd do things for 1 transcription factor, regardless of where your FIMO database is. The wrapper function for lymphoblast uses this code, and as I've already shown, you can change the parameters there as well. 
 
 On a similar subject, it's worth quickly going over how to create your TF-to-motif mapping. Rather than include another database dependency, I've just stored our universal TF-motif mapping (`2017_08_23_Motif_TF_Map.RDS`) in the `extdata` folder of this package. Then, to create a list of the proper format for fishing out motifs from FIMO, all you need to do is feed in your `chipseq.hits` data frame as follows:
 
