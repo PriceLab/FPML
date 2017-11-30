@@ -27,7 +27,8 @@ Imports:
     MotifDb,
     Biostrings,
     BSgenome.Hsapiens.UCSC.hg38,
-    S4Vectors
+    S4Vectors,
+    reshape2
 Depends:
     R (>= 3.4.0),
     dplyr (>= 0.7.4)
