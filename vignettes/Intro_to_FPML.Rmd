@@ -296,7 +296,23 @@ The thing returned to you should be a named list of length = 6. Specifically, th
 * X_val : validation data for predictors
 * y_val : validation data for response
 
-Right now we don't really do anything with the validation data, though that is subject to change. More importantly, you don't actually have to do anything with the members of the list themselves. This exactly list is all you'll have to put in to the modeling functions to make them work. So don't sweat it!
+Right now we don't really do anything with the validation data, though that is subject to change. More importantly, you don't actually have to do anything with the members of the list themselves if you want to make a model. This exactly list is all you'll have to put in to the modeling functions to make them work. So don't sweat it!
+
+### Bias the Training Data
+
+A new-ish addition to the `prepModelData()` is the option to bias your training data. You wouldn't really want to bias any other set, as that would be an unfair way to test your model, but as Rory put it, "You can do whatever you want with your training set, so long as the model works". 
+
+With that in mind, we suspect that we could possibly get a benefit by biasing the training set to have a larger ratio of ChIPseq hits to non-hits (positives to negatives). Or, from the other angle, we might benefit from having a smaller negative-to-positive ratio. In the ordinary dataset, the ratio of negatives to positives is something on the order of 50-100. If you want to change this ratio by cutting out some negatives, you'll want to manipulate the `biasTraining` and `biasRatio` parameters. 
+
+For instance, if I want to make the ratio of negatives to positives equal to 10, I'd do the following:
+
+```{r}
+# Bias the data to a 10-1 neg-pos ratio
+prepped.data <- prepModelData(annotated.df, "both", 
+                              biasTraining = TRUE, biasRatio = 10)
+```
+
+This option utilizes a somewhat buried function that we won't really discuss; all that function does is take a motif, a dataset, and a desired ratio, then return the biased dataset for that motif. We run it for all motifs in the `prepModelData` script to bias the full training set, but only if the `biasTraining` flag is set to TRUE (it's FALSE by default).
 
 ### Footprint Cutoffs
 
