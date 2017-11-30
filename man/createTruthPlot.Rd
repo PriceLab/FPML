@@ -22,6 +22,11 @@ probability. This is an INCLUSIVE value; positives are greater than or equal to 
 
 \item{plotFile}{A location to use for creating the png plot file}
 }
+\value{
+A plot of HINT vs Wellington scores, where both have been transformed via asinh() and
+the Wellington scores have been converted via absolute value. Points are coded by confusion
+matrix outcome.
+}
 \description{
 Create a "truth" plot, which plots HINT v. Wellington scores given a model and a threshold
 to use for determining a "positive"

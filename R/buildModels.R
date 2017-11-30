@@ -620,6 +620,12 @@ extractMaxMCC <- function(boostedStats, linearStats){
 #' @param X_test The matrix of test data for predictors, generally created using "prepModelData"
 #' @param y_test The matrix of test data for response, generally created using "prepModelData"
 #' @param plotFile A location to use for creating the png plot file
+#'
+#' @return A plot of HINT vs Wellington scores, where both have been transformed via asinh() and
+#' the Wellington scores have been converted via absolute value. Points are coded by confusion
+#' matrix outcome. 
+#'
+#' @export
 
 createTruthPlot <- function(model, modelType, seed, threshold,
                             X_test, y_test, plotFile){
@@ -649,8 +655,8 @@ createTruthPlot <- function(model, modelType, seed, threshold,
     names(pred.df)[[1]] <- "ChIPseq.bound"
 
     # Add the predictions to X footprint data to make a dataframe
-    truth.df <- dplyr::data_frame(abs_w_min_score = abs(X_test[,well.col]),
-                                  h_max_score = X_test[,hint.col],
+    truth.df <- dplyr::data_frame(abs_w_min_score = asinh(abs(X_test[,well.col])),
+                                  h_max_score = asinh(X_test[,hint.col]),
                                   true_cs_hit = pred.df$ChIPseq.bound,
                                   prediction = pred.df$Prediction)
 
