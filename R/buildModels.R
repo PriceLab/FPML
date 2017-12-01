@@ -693,7 +693,8 @@ createTruthPlot <- function(model, modelType, seed, threshold,
     truth.plot <- ggplot2::ggplot(truth.df) +
         ggplot2::geom_point(ggplot2::aes(x = abs_w_min_score,
                                          y = h_max_score,
-                                         color = Label)) +
+                                         color = Label,
+                                         alpha = 0.1)) +
         ggplot2::theme_minimal(base_size = 15)
     ggplot2::ggsave(filename = plotFile,
                     plot = truth.plot)
