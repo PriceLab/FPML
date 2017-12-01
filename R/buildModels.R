@@ -752,8 +752,8 @@ createThresholdPlot <- function(stats.df, modelName, plotFile){
     with(filtered.df, points(threshold, ppv, col = "green", pch = 20))
     with(filtered.df, points(threshold, npv, col = "orange", pch = 20))
     
-    legend(x = 0.8, y = 0.8, legend = c("Sens. (Recall)", "Specificity",
-                                        "PPV (Precision)", "NPV"),
+    legend("topright", legend = c("Sens. (Recall)", "Specificity",
+                                  "PPV (Precision)", "NPV"),
            pch = c(20, 20, 20, 20),
            col = c("blue", "red", "green", "orange"))
     dev.off()
