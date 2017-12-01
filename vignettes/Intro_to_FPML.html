@@ -144,6 +144,22 @@ $(document).ready(function () {
 <li>ChIPseq data for any other tissue you want to use</li>
 </ol>
 <p>If you’re using just the lymphoblast data, this means 7 databases at a minimum; for any other tissue, it’ll mean more like 12. For the purposes of this vignette, I’ll assume you’re just using the lymphoblast data.</p>
+<div id="a-quick-note-on-saving" class="section level2">
+<h2>A Quick Note on Saving</h2>
+<p>You’ll see as you go along that you’re creating a lot of really big datasets. These are a big pain in the butt to deal with because it would be dumb to create a dataset and then let it just disappear, but it’s also really annoying to spend all the time saving and loading them. My suggestion is to save data as you go along, but be aware that it’ll take up a fair amount of space. For instance, for the lymphoblast data…</p>
+<ul>
+<li>The full “constructed” dataset with duplicated values: ~50 GB</li>
+<li>The full “constructed” dataset without duplicates: ~30 GB</li>
+</ul>
+<p>You can read and write data using <code>load()</code> and <code>save()</code> if you wish, but I tend to use a faster way of doing it: the <code>fst</code> package. Similar to an RDS file, the <code>fst</code> file you write is just one data frame, but it can read/write pretty fast. Use it like this:</p>
+<pre class="r"><code>library(fst)
+# Write some data and compress it 100x
+write.fst(big.data, path = &quot;./big.data.fst&quot;, compress = 100)
+
+# Read back the data
+read.fst(&quot;./big.data.fst&quot;)</code></pre>
+<p>You don’t have to compress it, but it does save space. I often find that the files in <code>.fst</code> format are larger than the <code>.Rdata</code> files if I don’t compress them. But regardless of space, they should read/write much faster.</p>
+</div>
 </div>
 <div id="constructing-a-motif-dataset-constructmotifdataset.r" class="section level1">
 <h1>Constructing a Motif Dataset (<code>constructMotifDataset.R</code>)</h1>

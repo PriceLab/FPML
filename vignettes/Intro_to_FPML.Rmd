@@ -31,6 +31,26 @@ One more thing before we jump in is to consider the prerequisites for running th
 
 If you're using just the lymphoblast data, this means 7 databases at a minimum; for any other tissue, it'll mean more like 12. For the purposes of this vignette, I'll assume you're just using the lymphoblast data. 
 
+## A Quick Note on Saving
+
+You'll see as you go along that you're creating a lot of really big datasets. These are a big pain in the butt to deal with because it would be dumb to create a dataset and then let it just disappear, but it's also really annoying to spend all the time saving and loading them. My suggestion is to save data as you go along, but be aware that it'll take up a fair amount of space. For instance, for the lymphoblast data...
+
+* The full "constructed" dataset with duplicated values: ~50 GB
+* The full "constructed" dataset without duplicates: ~30 GB
+
+You can read and write data using `load()` and `save()` if you wish, but I tend to use a faster way of doing it: the `fst` package. Similar to an RDS file, the `fst` file you write is just one data frame, but it can read/write pretty fast. Use it like this:
+
+```{r}
+library(fst)
+# Write some data and compress it 100x
+write.fst(big.data, path = "./big.data.fst", compress = 100)
+
+# Read back the data
+read.fst("./big.data.fst")
+```
+
+You don't have to compress it, but it does save space. I often find that the files in `.fst` format are larger than the `.Rdata` files if I don't compress them. But regardless of space, they should read/write much faster. 
+
 # Constructing a Motif Dataset (`constructMotifDataset.R`)
 
 This script contains 4 functions, all of which are aimed at constructing your initial dataset of motifs. If you're only interested in reproducing the lymphoblast dataset, I have included a function called `constructLymphoblastDataset()` that you can call directly. This function wraps the other functions into one place so you can just run one thing. Most basically, I've made it so you can just run without supplying any other arguments:
