@@ -745,6 +745,7 @@ createThresholdPlot <- function(stats.df, modelName, plotFile){
     filtered.df <- stats.df %>% dplyr::filter(Model.Name == modelName)
     
     # Plot the 4 metrics (not just 3)
+    png(filename = plotFile)
     with(filtered.df, plot(threshold, sensitivity, col = "blue", pch = 20,
                            xlab = "Threshold", ylab = "Metric"))
     with(filtered.df, points(threshold, specificity, col = "red", pch = 20))
@@ -755,6 +756,7 @@ createThresholdPlot <- function(stats.df, modelName, plotFile){
                                         "PPV (Precision)", "NPV"),
            pch = c(20, 20, 20, 20),
            col = c("blue", "red", "green", "orange"))
+    dev.off()
   
 } # createThresholdPlot
 #----------------------------------------------------------------------------------------------------
