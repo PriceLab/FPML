@@ -183,7 +183,7 @@ tf.data &lt;- createTfDf(TF, TFs.to.motifs, chipseq.regions, chipseq.hits)</code
 <pre class="r"><code># Grab data for one TF from Khaleesi port 5433
 tf.data &lt;- createTfDf(TF, TFs.to.motifs, chipseq.regions, chipseq.hits,
                       fimoHost = &quot;khaleesi&quot;, fimoPort = &quot;5433&quot;)</code></pre>
-<p>So that’s how you’d do things for 1 chromosome, regardless of where your FIMO database is. The wrapper function for lymphoblast uses this code, and as I’ve already shown, you can change the parameters there as well.</p>
+<p>So that’s how you’d do things for 1 transcription factor, regardless of where your FIMO database is. The wrapper function for lymphoblast uses this code, and as I’ve already shown, you can change the parameters there as well.</p>
 <p>On a similar subject, it’s worth quickly going over how to create your TF-to-motif mapping. Rather than include another database dependency, I’ve just stored our universal TF-motif mapping (<code>2017_08_23_Motif_TF_Map.RDS</code>) in the <code>extdata</code> folder of this package. Then, to create a list of the proper format for fishing out motifs from FIMO, all you need to do is feed in your <code>chipseq.hits</code> data frame as follows:</p>
 <pre class="r"><code># Create the TF-motif mapping in list form
 TFs.to.motifs &lt;- mapTFsToMotifs(chipseq.hits)</code></pre>
@@ -381,7 +381,7 @@ plotStatCurves(boosted.output$BoostedStats, linear.output$LinearStats, &quot;bot
                filePaths = c(&quot;./MCC_curve.png&quot;,
                              &quot;./ROC_curve.png&quot;,
                              &quot;./PrecRec_curve.png&quot;))</code></pre>
-<p>Using the supplied <code>dataType</code>, the function will arrange all the curves in the correct order and take care of colors. Those 3 curves should form the basis of how you compare different models to one another. Now you might decide that you’d like to hone in on a particular model and examine it. At the current writing, there are 2 functions for doing so (a 3rd is on the way); one is specific to the boosted model and the other is for any model.</p>
+<p>Using the supplied <code>dataType</code>, the function will arrange all the curves in the correct order and take care of colors. Those 3 curves should form the basis of how you compare different models to one another. Now you might decide that you’d like to hone in on a particular model and examine it. At the current writing, there are 3 functions for doing so; one is specific to the boosted model and the other two are for any model.</p>
 <p>First, let’s talk about constructing the importance matrix, which is just for a boosted model. The importance matrix gives you some insight into the boosted model you supply, giving you information on the “gain” for each feature. Roughly speaking the gain is a weighted measure of how much that feature pops up in the ensemble of trees used by the boosted method, so the top feature could be argued to be the most important. While I would caution against reading too far into this, it’s a useful way of better understanding the boosted model. But be careful; boosted models are by definition non-linear, so this isn’t like you’re reading off linear coefficients that you can directly compare to one another.</p>
 <p>That said, you can construct your importance matrix and save it to a .png file using the <code>plotImportanceMatrix()</code> function:</p>
 <pre class="r"><code># Plot the importance matrix locally
@@ -410,6 +410,31 @@ truth.df &lt;- createTruthPlot(linear.output$LinearModel,
 <p>The data frame can be used to immediately evaluate the distribution of each confusion matrix outcome using the <code>table()</code> command:</p>
 <pre class="r"><code>table(truth.df$Label)</code></pre>
 <p>You’ll generally see the group being dominated by TN values, as most points are not ChIPseq hits and any decent model will generally identify them correctly.</p>
+<p>The final thing we’ll address is this mystical “threshold” we’ve been talking about. If you’re looking for what threshold to use, you could go straight to the statistical curves we plotted earlier and pick one from there. But in general, picking from, say, the MCC curve will be basing your choice off one number. You might want to look at a handful of numbers instead, in particular:</p>
+<ul>
+<li>Sensitivity (aka Recall): TP/(TP + FN); the ratio of true positives to total positives</li>
+<li>Specificity: TN/(TN + FP); the ratio of true negatives to total negatives</li>
+<li>PPV (aka Precision): TP/(TP + FP); the ratio of true positives to total predicted positives</li>
+<li>NPV: TN/(TN + FN); the ratio of true negatives to total predicted negatives</li>
+</ul>
+<p>The basic idea is that if we set our threshold higher….</p>
+<ul>
+<li>Recall decreases because you’re making it harder to make a positive prediction (fewer true positives)</li>
+<li>Specificity increases because you’re making it easier to make a negative prediction (fewer false positives)</li>
+<li>Precision usually increases because your standards for a positive prediction are more rigorous, favoring true postives over false positives</li>
+<li>NPV usually decreases because your standards for a negative prediction are more lax, favoring false negatives over true negatives</li>
+</ul>
+<p>That’s a bunch of words, which may be more gobblety-gook, but if you want to take a look at a plot that helps visualize it, run the <code>createThresholdPlot()</code> function:</p>
+<pre class="r"><code># Create a threshold plot for the boosted model
+createThresholdPlot(boosted.output$BoostedStats,
+                    modelName = &quot;trees with classes&quot;,
+                    plotFile = &quot;./thresholdPlot.png&quot;)</code></pre>
+<p>So we’re feeding it our stats data frame, which contains all these values; we’re also giving it the model name to look for, which corresponds to our boosted model. If you’re dealing with the linear data frame, you should take a look at the possible model names (e.g. <code>unique(linear.output$LinearStats$Model.Name)</code>) to determine what to use here. For instance, if I wanted to plot for the full linear model, it’s actually called “glm small”, so I’d do:</p>
+<pre class="r"><code># Create a threshold plot for the boosted model
+createThresholdPlot(linear.output$LinearStats,
+                    modelName = &quot;glm small&quot;,
+                    plotFile = &quot;./thresholdPlot.png&quot;)</code></pre>
+<p>As before, we also have to supply a destination for the plot, which I save to the current directory in the above calls. Once you’ve made the plot, you can look at the 4 values and decide where your best threshold is located. It’s worth noting that the 4 values are not all independent; only 3 values are actually independent in the plot and can be used to find the 4th one. But I think it’s useful to see all 4 of them anyway. In general, you’re trying to find a compromise between Recall/NPV and Specificity/Precision.</p>
 <p>Let’s finish this section by summing up EVERYTHING we’ve done here:</p>
 <ul>
 <li>Use your annotated data to build models; if you haven’t gone through that step and the ones previous to it, do that first!</li>
@@ -417,8 +442,9 @@ truth.df &lt;- createTruthPlot(linear.output$LinearModel,
 <li>Always prep your data using <code>prepModelData()</code>, where you can choose whether or not to bias your training set</li>
 <li>Build boosted and linear models using <code>buildBoostedModel()</code> and <code>buildLinearModels()</code></li>
 <li>Compare your models’ performance numerically with <code>extractMaxMCC()</code> and graphically with <code>plotStatCurves()</code></li>
+<li>Once you’ve selected a model, find a threshold that suits you using <code>createThresholdPlot()</code></li>
 <li>Evaluate any individual model’s performance with <code>createTruthPlot()</code></li>
-<li>Check out the features of the boosted model with <code>plotImportanceMatrix()</code>.</li>
+<li>Check out the features of the boosted model with <code>plotImportanceMatrix()</code></li>
 </ul>
 </div>
 </div>
@@ -433,6 +459,7 @@ truth.df &lt;- createTruthPlot(linear.output$LinearModel,
 <li>Join together the data and prep the for model building</li>
 <li>Build both linear and boosted models for the data</li>
 <li>Construct statistical curves to evaluate model performance in comparison with one another</li>
+<li>Using the boosted model, plot the threshold versus stats metrics to show what threshold to choose</li>
 <li>Examine the boosted model to look at its most important features</li>
 <li>Using the boosted model, create a truth plot and pull out the confusion matrix values</li>
 </ol>
@@ -480,12 +507,17 @@ plotStatCurves(boosted.output$BoostedStats, linear.output$LinearStats, &quot;bot
                              &quot;./ROC_curve.png&quot;,
                              &quot;./PrecRec_curve.png&quot;))
 
-# 7. Examine the boosted model to look at its most important features (locally)
+# 7. Using the boosted model, plot the threshold versus stats metrics to show what threshold to choose
+createThresholdPlot(boosted.output$BoostedStats,
+                    modelName = &quot;trees with classes&quot;,
+                    plotFile = &quot;./thresholdPlot.png&quot;)
+
+# 8. Examine the boosted model to look at its most important features (locally)
 plotImportanceMatrix(boosted.output$BoostedModel, 
                      prepped.data$X_train, 
                      filePath = &quot;./Importance_matrix.png&quot;)
 
-# 8. Using the boosted model, create a truth plot (locally) and pull out the confusion matrix values
+# 9. Using the boosted model, create a truth plot (locally) and pull out the confusion matrix values
 truth.df &lt;- createTruthPlot(linear.output$BoostedModel,
                             modelType = &quot;boosted&quot;, 
                             seed = &quot;both&quot;, 
