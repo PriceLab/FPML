@@ -157,7 +157,7 @@ $(document).ready(function () {
 write.fst(big.data, path = &quot;./big.data.fst&quot;, compress = 100)
 
 # Read back the data
-read.fst(&quot;./big.data.fst&quot;)</code></pre>
+big.data &lt;- read.fst(&quot;./big.data.fst&quot;)</code></pre>
 <p>You don’t have to compress it, but it does save space. I often find that the files in <code>.fst</code> format are larger than the <code>.Rdata</code> files if I don’t compress them. But regardless of space, they should read/write much faster.</p>
 </div>
 </div>
