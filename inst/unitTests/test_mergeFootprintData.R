@@ -35,16 +35,15 @@ test_mergeFootprintsOneChrom <- function(){
                                        well_hits_tbl= well.hits.Y)
 
     # Should be 7 x 14
-    checkTrue(ncol(results) == 14)
+    checkTrue(ncol(results) == 16)
     checkTrue(nrow(results) == 7)
 
     # Check that the columns are all right
     expected.names <- sort(c("motifname", "chrom", "start", "endpos", "strand", "motifscore",
-                        "pval", "sequence", "loc", "cs_hit", "h_count", "h_max_score",
-                        "w_count", "w_min_score"))
+                             "pval", "sequence", "loc", "cs_hit", "h_count", "h_max_score",
+                             "h_percent_overlap", "w_count", "w_min_score", "w_percent_overlap"))
     
     checkEquals(sort(names(results)), expected.names)
-
     
 } # test_mergeFootprintsOneChrom
 #----------------------------------------------------------------------------------------------------

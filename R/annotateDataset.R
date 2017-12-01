@@ -35,7 +35,7 @@ annotateFootprintData <- function(fp.df, chipseq.hits, host = "localhost", port 
         dplyr::mutate(h_frac = h_count/max(h_count)) %>%
         dplyr::mutate(w_frac = w_count/max(w_count)) %>%
         dplyr::select(-one_of("h_count","w_count")) %>%
-        dplyr::select(motifname:w_min_score,
+        dplyr::select(motifname:w_percent_overlap,
                       h_frac, w_frac, gc_content,
                       asinh_tss_dist,
                       dplyr::everything()) ->

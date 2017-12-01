@@ -34,7 +34,7 @@ test_annotateFootprintData <- function(){
     annotated.df <- annotateFootprintData(merged.df, chipseq.hits)
 
     # Check that the dimensions are correct
-    checkEquals(ncol(annotated.df), 21)
+    checkEquals(ncol(annotated.df), 23)
     checkEquals(nrow(annotated.df), 7)
 
     # Check that we added 7 columns
@@ -54,7 +54,9 @@ test_annotateFootprintData <- function(){
                             "h_max_score",
                             "w_min_score",
                             "h_frac",                               
-                            "w_frac",                               
+                            "w_frac",
+                            "h_percent_overlap",
+                            "w_percent_overlap",
                             "gc_content",
                             "asinh_tss_dist",
                             "Basic helix-loop-helix factors (bHLH)",

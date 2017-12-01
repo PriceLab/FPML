@@ -224,7 +224,8 @@ prepModelData <- function(annotated.df, seed,
         cols_to_drop <- c('motifname', 'chrom', 'strand', 'loc',
                           'h_frac_16', 'h_frac_20', 'h_max_score_16', 'h_max_score_20',
                           'w_frac_16', 'w_frac_20', 'w_min_score_16', 'w_min_score_20',
-                          'h_frac', 'w_frac', 'h_max_score', 'w_min_score')
+                          'h_frac', 'w_frac', 'h_max_score', 'w_min_score',
+                          'h_percent_overlap', 'w_percent_overlap')
     } else{
         cols_to_drop <- c('motifname', 'chrom', 'start', 'endpos',
                           'strand', 'pval', 'sequence','loc')
@@ -372,7 +373,9 @@ joinModelData <- function(full.16, full.20){
     sub.16 <- dplyr::select(full.16, -pval, -sequence, -start, -endpos)
 
     # Join them together
-    my.keys <- setdiff(names(sub.20), c("h_max_score","w_min_score","h_frac","w_frac"))
+    my.keys <- setdiff(names(sub.20),
+                       c("h_max_score","w_min_score","h_frac","w_frac",
+                         "h_percent_overlap", "w_percent_overlap"))
     joined.df <- dplyr::full_join(sub.20,
                                   sub.16,
                                   by = my.keys,

@@ -18,7 +18,7 @@
 #' @export
 
 mergeLymphoblastFootprints <- function(fimo.df, seedNum, host = "localhost", port = "5432", verbose = TRUE){
-
+    
     # Create database name strings
     db.hint <- paste0("lymphoblast_hint_", seedNum)
     db.well <- paste0("lymphoblast_wellington_", seedNum)
@@ -40,14 +40,14 @@ mergeLymphoblastFootprints <- function(fimo.df, seedNum, host = "localhost", por
     hint_hits    <- dplyr::tbl(db_lymph_hint, "hits")
     well_regions <- dplyr::tbl(db_lymph_well, "regions")
     well_hits    <- dplyr::tbl(db_lymph_well, "hits")
-
+    
     # Run the big function using a for loop
     chromosomes <- as.character(c(1:22, "X","Y"))
-
+    
     big_list <- list()
     counter <- 1
     now.time <- Sys.time()
-
+    
     for (chr_str in chromosomes) {
         # Print if it's verbose
         if(verbose){
@@ -61,7 +61,7 @@ mergeLymphoblastFootprints <- function(fimo.df, seedNum, host = "localhost", por
                                                        well_regions,
                                                        well_hits)
         counter <- counter + 1
-
+        
         if(verbose){
             message(paste("Time elapsed:", Sys.time() - now.time))
         }
@@ -93,7 +93,7 @@ mergeLymphoblastFootprints <- function(fimo.df, seedNum, host = "localhost", por
 #' 
 #' @export
 
-mergeFootprintsOneChrom <- function(chrom_str,
+ mergeFootprintsOneChrom <- function(chrom_str,
                                     fimo_tbl,
                                     hint_regions_tbl,
                                     hint_hits_tbl,
@@ -101,59 +101,87 @@ mergeFootprintsOneChrom <- function(chrom_str,
                                     well_hits_tbl
                                     ) {
 
-    # some tables use chr22 and some just use 22
-    chrom_long_str = paste("chr",chrom_str, sep="")
-
-    # select one chromosome from my data table
-    fimo_tbl %>%
-        dplyr::filter(chrom==chrom_str) %>%
-        dplyr::select(-empty) ->
-        chrom_all_tf_df
-
-        # select one chromosome from hint
-    hint_regions_tbl %>%
-        dplyr::filter(chrom==chrom_long_str) %>%
-        dplyr::left_join(hint_hits_tbl, by="loc") %>%
-        dplyr::select(start, endpos, strand, name, h_score = score1) %>%
-        dplyr::group_by(start, endpos, name, strand) %>%
-        dplyr::mutate(h_count = n(), h_max_score = max(h_score)) %>%
-        dplyr::select(-h_score) %>%
-        tibble::as_tibble() ->
-        chrom_hint_all_tbl
-
-    # Grab only distinct ones
-    chrom_hint_all_tbl %>%
-        dplyr::distinct(start, endpos, name, strand, .keep_all = TRUE) ->
-        chrom_hint_unique_tbl
-    rm(chrom_hint_all_tbl)
-
-    # select one chromosome from wellington
-    well_regions_tbl %>%
-        dplyr::filter(chrom==chrom_long_str) %>%
-        dplyr::left_join(well_hits_tbl, by="loc") %>%
-        dplyr::select(start, endpos, strand, name, w_score = score1) %>%
-        dplyr::group_by(start, endpos, name, strand) %>%
-        dplyr::mutate(w_count = n(), w_min_score = min(w_score)) %>%
-        dplyr::select(-w_score) %>%
-        tibble::as_tibble() ->
-        chrom_well_all_tbl
-
-    # keep only min wellington score but count total nontrivial scores
-    chrom_well_all_tbl %>%
-        dplyr::distinct(start, endpos, name, strand, .keep_all = TRUE) ->
-        chrom_well_unique_tbl
-    rm(chrom_well_all_tbl)
-    
-    # merge hint and wellington into my table
-    chrom_all_tf_df %>%
-        dplyr::left_join(chrom_hint_unique_tbl,
-                         by=c("start", "endpos", "strand", "motifname"="name")) %>%
-        dplyr::left_join(chrom_well_unique_tbl,
-                         by=c("start", "endpos", "strand", "motifname"="name")) %>%
-        tidyr::replace_na(list(h_count=0, w_count=0, h_max_score=0, w_min_score=0)) ->
-        chrom_all_tf_df_merged
-    
-    return(chrom_all_tf_df_merged)
+     # some tables use chr22 and some just use 22
+     chrom_long_str = paste("chr",chrom_str, sep="")
+     
+     # select one chromosome from my data table
+     fimo_tbl %>%
+         dplyr::filter(chrom==chrom_str) %>%
+         dplyr::select(-empty) ->
+         chrom_all_tf_df
+          
+     # Create an overlap function
+     getOverlap <- function(motif_start, motif_end, fp_start, fp_end){
+         
+         # Create the 3 terms for the numerator
+         term1 <- abs(max(motif_end, fp_end) - min(motif_start, fp_start))
+         term2 <- abs(motif_end - fp_end)
+         term3 <- abs(motif_start - fp_start)
+         
+         # Put terms together and return number
+         num <- term1 - term2 - term3
+         denom <- motif_end - motif_start
+         perc.overlap <- 100*num/denom
+         return(perc.overlap)
+     }
+     
+     # select one chromosome from hint
+     hint_regions_tbl %>%
+         dplyr::filter(chrom==chrom_long_str) %>%
+         dplyr::left_join(hint_hits_tbl, by="loc") %>%
+         dplyr::select(start, endpos, strand, name,
+                       fp_start, fp_end, h_score = score1) %>%
+         dplyr::group_by(start, endpos, name, strand) %>%
+         dplyr::mutate(h_count = n(), h_max_score = max(h_score)) %>%
+         dplyr::select(-h_score) %>%
+         tibble::as_tibble() ->
+         chrom_hint_all_tbl
+     
+     # Grab only distinct ones
+     chrom_hint_all_tbl %>%
+         dplyr::rowwise() %>%
+         dplyr::mutate(h_percent_overlap = getOverlap(start, endpos,
+                                                      fp_start, fp_end)) %>%
+         dplyr::select(-fp_start, -fp_end) %>%
+         dplyr::distinct(start, endpos, name, strand, .keep_all = TRUE) ->
+         chrom_hint_unique_tbl
+     rm(chrom_hint_all_tbl)
+     
+     # select one chromosome from wellington
+     well_regions_tbl %>%
+         dplyr::filter(chrom==chrom_long_str) %>%
+         dplyr::left_join(well_hits_tbl, by="loc") %>%
+         dplyr::select(start, endpos, strand, name,
+                       fp_start, fp_end, w_score = score1) %>%
+         dplyr::group_by(start, endpos, name, strand) %>%
+         dplyr::mutate(w_count = n(), w_min_score = min(w_score)) %>%
+         dplyr::select(-w_score) %>% 
+         tibble::as_tibble() ->
+         chrom_well_all_tbl
+     
+     # keep only min wellington score but count total nontrivial scores
+     chrom_well_all_tbl %>%
+         dplyr::rowwise() %>%
+         dplyr::mutate(w_percent_overlap = getOverlap(start, endpos,
+                                                      fp_start, fp_end)) %>%
+         dplyr::select(-fp_start, -fp_end) %>%
+         dplyr::distinct(start, endpos, name, strand, .keep_all = TRUE) ->
+         chrom_well_unique_tbl
+     rm(chrom_well_all_tbl)
+     
+     # merge hint and wellington into my table
+     chrom_all_tf_df %>%
+         dplyr::left_join(chrom_hint_unique_tbl,
+                          by=c("start", "endpos", "strand","motifname"="name")) %>%
+         dplyr::left_join(chrom_well_unique_tbl,
+                          by=c("start", "endpos", "strand", "motifname"="name")) %>%
+         tidyr::replace_na(list(h_count=0, w_count=0,
+                                h_max_score=0, w_min_score=0,
+                                h_percent_overlap = 0,
+                                w_percent_overlap = 0)) ->
+         chrom_all_tf_df_merged
+     
+     return(chrom_all_tf_df_merged)
 
 }# mergeFootprintsOneChrom
 #----------------------------------------------------------------------------------------------------
