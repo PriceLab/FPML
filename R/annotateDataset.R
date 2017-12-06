@@ -21,7 +21,7 @@ annotateFootprintData <- function(fp.df, chipseq.hits, host = "localhost", port 
     
     # Add the motif class to the dataframe
     annotated.df <- dplyr::left_join(fp.df,
-                              motif_class_hot)
+                              motif_class_hot, by = "motifname")
 
     # Add GC Content
     annotated.df <- annotated.df %>% 
@@ -76,7 +76,6 @@ createMotifClassMap <- function(fp.df, TFs.to.motifs){
     filtered.motif.class <- dplyr::semi_join(fixed.motif.class,
                                              fp.df,
                                              by = "motifname")    
-
     # Make it into a one-hot form
     filtered.motif.class %>%
         # clean up and subset to only relevant motifs

@@ -100,6 +100,9 @@ mapTFsToMotifs <- function(chipseq.hits){
     TF.motif.pairs <- readRDS(system.file(package="FPML", "extdata/2017_08_23_Motif_TF_Map.RDS"))
     names(TF.motif.pairs) <- c("motif", "tfs")
 
+    # Reduce it to only Jaspar motifs
+    TF.motif.pairs <- subset(TF.motif.pairs, grepl("MA\\d{4}\\.\\d$", motif))
+
     # Grab the unique set of chipseq TFs
     unique.cs.tfs <- unique(chipseq.hits$name)
     cs.tf.matches <- unique.cs.tfs[unique.cs.tfs %in% TF.motif.pairs$tfs]

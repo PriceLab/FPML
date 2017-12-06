@@ -15,10 +15,10 @@ the function will stop and give an error.}
 match the data in the data frame}
 
 \item{hintCutoff}{A cutoff value used as a threshold on the HINT footprint score. Only scores
-above this threshold will be kept (default = 3.6)}
+above this threshold will be kept (default = -Inf)}
 
 \item{wellCutoff}{A cutoff value used as a threshold on the Wellington footprint score. Only
-scores below this threshold will be kept (default = -2.3)}
+scores below this threshold will be kept (default = Inf)}
 
 \item{motifsOnly}{A Boolean value indicating whether to prepare data such that it uses only motifs,
 neglecting the footprint data (default = FALSE)}

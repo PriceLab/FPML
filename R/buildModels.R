@@ -69,8 +69,7 @@ buildLinearModels <- function(dataList){
         glm.pred.single.df <- make.pred.df.from.glm(glm.single, glm.df.test)
         glm.stat.single.df <- make.stats.df.from.preds(glm.pred.single.df)
     
-        stats.regressors.df <- bind_rows(stats.regressors.df, glm.stat.single.df)
-        
+        stats.regressors.df <- bind_rows(stats.regressors.df, glm.stat.single.df)        
     }
 
     linear.stat.df <- dplyr::bind_rows(glm.stat.df, stats.regressors.df)
