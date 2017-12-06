@@ -177,9 +177,9 @@ buildBoostedModel <- function(dataList){
 #' @param seed A character string that should be one of c("16","20","both"). This seed should
 #' match the data in the data frame
 #' @param hintCutoff A cutoff value used as a threshold on the HINT footprint score. Only scores
-#' above this threshold will be kept (default = 3.6)
+#' above this threshold will be kept (default = -Inf)
 #' @param wellCutoff A cutoff value used as a threshold on the Wellington footprint score. Only
-#' scores below this threshold will be kept (default = -2.3)
+#' scores below this threshold will be kept (default = Inf)
 #' @param motifsOnly A Boolean value indicating whether to prepare data such that it uses only motifs,
 #' neglecting the footprint data (default = FALSE)
 #'
@@ -252,10 +252,10 @@ prepModelData <- function(annotated.df, seed,
             train.init
 
         # Bias all the motifs
-        train.list <- lapply(unique(train.init$motifname,
+        train.list <- lapply(unique(train.init$motifname),
                                     createBiasOneMotif,
                                     train.df = train.init,
-                                    negPosRatio = biasRatio))
+                                    negPosRatio = biasRatio)
         train.list %>%
             dplyr::bind_rows() %>%
             dplyr::select(-dplyr::one_of(cols_to_drop)) ->

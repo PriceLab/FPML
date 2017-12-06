@@ -498,7 +498,7 @@ That's a bunch of words, which may be more gobblety-gook, but if you want to tak
 ```{r}
 # Create a threshold plot for the boosted model
 createThresholdPlot(boosted.output$BoostedStats,
-                    modelName = "trees with classes",
+                    modelName = "gradient boosted model",
                     plotFile = "./thresholdPlot.png")
 ```
 
@@ -507,7 +507,7 @@ So we're feeding it our stats data frame, which contains all these values; we're
 ```{r}
 # Create a threshold plot for the boosted model
 createThresholdPlot(linear.output$LinearStats,
-                    modelName = "glm small",
+                    modelName = "linear model (all regressors)",
                     plotFile = "./thresholdPlot.png")
 ```
 
@@ -587,7 +587,7 @@ plotStatCurves(boosted.output$BoostedStats, linear.output$LinearStats, "both",
 
 # 7. Using the boosted model, plot the threshold versus stats metrics to show what threshold to choose
 createThresholdPlot(boosted.output$BoostedStats,
-                    modelName = "trees with classes",
+                    modelName = "gradient boosted model",
                     plotFile = "./thresholdPlot.png")
 
 # 8. Examine the boosted model to look at its most important features (locally)
