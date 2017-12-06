@@ -111,13 +111,15 @@ plotImportanceMatrix <- function(gbModel, X_train, filePath){
     names(tfclass.row) <- colnames(df)
     df.sum <- dplyr::bind_rows(df.notf,tfclass.row)
 
-    png(filePath)
-    ggplot2::ggplot(data=df.sum, ggplot2::aes(x=reorder(Feature, Gain), y=Gain)) +
+
+    g <- ggplot2::ggplot(data=df.sum, ggplot2::aes(x=reorder(Feature, Gain), y=Gain)) +
         ggplot2::geom_bar(stat="identity") +
         ggplot2::coord_flip() +
         ggplot2::theme_minimal(base_size = 30) +
         ggplot2::labs(x = "Feature", y="Gain")
-    dev.off()
+
+    ggplot2::ggsave(filename = filePath,
+                    plot = g)
     
 } # plotImportanceMatrix
 #----------------------------------------------------------------------------------------------------
