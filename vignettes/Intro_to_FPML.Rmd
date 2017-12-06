@@ -596,7 +596,7 @@ plotImportanceMatrix(boosted.output$BoostedModel,
                      filePath = "./Importance_matrix.png")
 
 # 9. Using the boosted model, create a truth plot (locally) and pull out the confusion matrix values
-truth.df <- createTruthPlot(linear.output$BoostedModel,
+truth.df <- createTruthPlot(boosted.output$BoostedModel,
                             modelType = "boosted", 
                             seed = "both", 
                             threshold = 0.3,
