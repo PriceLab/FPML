@@ -464,7 +464,7 @@ plotStatCurves <- function(boostedStats, linearStats, dataType, filePaths){
     } else if(dataType == "motifsOnly"){
         modelList <- c("glm motifscore",
                        "glm gc_content",
-                       "glm asinh_ts_dist",
+                       "glm asinh_tss_dist",
                        "gradient boosted model",
                        "linear model (all regressors)")
 
