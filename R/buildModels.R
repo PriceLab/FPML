@@ -225,6 +225,8 @@ prepModelData <- function(annotated.df, seed,
         cols_to_drop <- c('motifname', 'chrom', 'strand', 'loc',
                           'h_frac_16', 'h_frac_20', 'h_max_score_16', 'h_max_score_20',
                           'w_frac_16', 'w_frac_20', 'w_min_score_16', 'w_min_score_20',
+                          'w_percent_overlap_20', 'w_percent_overlap_16',
+                          'h_percent_overlap_20', 'h_percent_overlap_16',
                           'h_frac', 'w_frac', 'h_max_score', 'w_min_score',
                           'h_percent_overlap', 'w_percent_overlap')
     } else{
